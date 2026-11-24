@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1115">
+<title>矿大北京 · 采矿学硕</title>
+<style>
+  :root{
+    --bg:#0f1115; --card:#171a21; --card2:#1d212b; --line:#262b38;
+    --text:#e9ecf3; --dim:#8a92a6; --faint:#5d6579;
+    --amber:#e0a458; --green:#5fb47a; --red:#e06c6c; --blue:#6aa6e0;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:15px; line-height:1.6;
+    padding:0 0 env(safe-area-inset-bottom);
+  }
+  .wrap{max-width:680px;margin:0 auto;padding:20px 16px 40px;}
+  h1,h2,h3{margin:0;font-weight:600;}
+  .muted{color:var(--dim);}
+  .faint{color:var(--faint);}
+  .small{font-size:12.5px;}
+  .num{font-variant-numeric:tabular-nums;}
+
+  /* 顶部倒计时 */
+  header{padding:6px 0 22px;border-bottom:1px solid var(--line);margin-bottom:20px;}
+  .eyebrow{font-size:12px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;}
+  .count{
+    display:flex;align-items:baseline;gap:10px;margin:8px 0 4px;
+  }
+  .count .big{font-size:64px;line-height:1;font-weight:700;color:var(--text);letter-spacing:-.02em;}
+  .count .unit{font-size:16px;color:var(--dim);}
+  .count .sub{margin-left:auto;text-align:right;font-size:12.5px;color:var(--dim);line-height:1.45;}
+  .exam-src{font-size:12px;color:var(--faint);margin-top:2px;}
+  .exam-src input{
+    background:transparent;border:1px solid var(--line);color:var(--dim);
+    border-radius:6px;padding:3px 6px;font-size:12px;color-scheme:dark;
+  }
+
+  /* 区块 */
+  section{margin-bottom:26px;}
+  .sec-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;}
+  .sec-head h2{font-size:14px;color:var(--dim);letter-spacing:.06em;font-weight:500;}
+  .sec-head .tag{font-size:12px;color:var(--faint);}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;}
+  .card + .card{margin-top:10px;}
+
+  /* 今日 */
+  .today-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;}
+  .stat .k{font-size:12px;color:var(--faint);}
+  .stat .v{font-size:22px;font-weight:600;margin-top:2px;}
+
+  .plan-item{
+    display:flex;align-items:center;gap:12px;
+    padding:9px 0;border-top:1px dashed var(--line);
+  }
+  .plan-item:first-of-type{border-top:0;}
+  .plan-item .t{width:96px;flex:none;color:var(--dim);font-size:13px;}
+  .plan-item .n{flex:1;}
+  .plan-item .tag{font-size:11px;padding:1px 8px;border-radius:99px;border:1px solid var(--line);color:var(--dim);}
+  .course-item{display:flex;gap:10px;font-size:13px;color:var(--dim);padding:3px 0;}
+  .course-item b{color:var(--text);font-weight:500;}
+  .empty{color:var(--faint);font-size:13px;padding:6px 0;}
+
+  /* 科目 */
+  .subj-head{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+  .subj-name{font-size:16px;font-weight:600;}
+  .subj-dot{width:8px;height:8px;border-radius:50%;background:var(--amber);flex:none;}
+  .subj-head .pct{margin-left:auto;font-size:12px;color:var(--dim);}
+  .meter{height:4px;background:var(--card2);border-radius:99px;overflow:hidden;margin:0 0 12px;}
+  .meter i{display:block;height:100%;background:var(--amber);border-radius:99px;transition:width .25s;}
+
+  .fields{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;}
+  .field label{display:block;font-size:11px;color:var(--faint);margin-bottom:3px;}
+  .field input{
+    width:100%;background:var(--card2);border:1px solid var(--line);color:var(--text);
+    border-radius:8px;padding:7px 8px;font-size:14px;color-scheme:dark;
+  }
+  .field input:focus{outline:none;border-color:var(--amber);}
+
+  .kps{list-style:none;margin:0;padding:0;}
+  .kps li{
+    display:flex;align-items:flex-start;gap:9px;padding:6px 0;
+    font-size:13.5px;color:var(--text);cursor:pointer;user-select:none;
+  }
+  .kps li .box{
+    width:16px;height:16px;flex:none;margin-top:2px;border-radius:4px;
+    border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;
+    font-size:11px;color:transparent;
+  }
+  .kps li.on .box{background:var(--green);border-color:var(--green);color:#0f1115;}
+  .kps li.on span{color:var(--faint);text-decoration:line-through;}
+  .kps li .kp-txt{flex:1;}
+
+  .kps-edit{margin-top:10px;display:flex;gap:8px;}
+  .kps-edit input{
+    flex:1;background:var(--card2);border:1px solid var(--line);color:var(--text);
+    border-radius:8px;padding:7px 9px;font-size:13px;
+  }
+  .btn{
+    background:var(--card2);border:1px solid var(--line);color:var(--text);
+    border-radius:8px;padding:7px 12px;font-size:13px;cursor:pointer;
+  }
+  .btn:active{transform:scale(.97);}
+  .btn.ghost{background:transparent;color:var(--dim);}
+  .btn.warn{border-color:#4a2b2b;color:var(--red);}
+
+  /* 课表 */
+  .day{border-top:1px solid var(--line);padding:10px 0;}
+  .day:first-of-type{border-top:0;}
+  .day-head{display:flex;align-items:center;gap:8px;cursor:pointer;}
+  .day-head .dname{font-weight:600;font-size:14px;}
+  .day-head .dcnt{font-size:12px;color:var(--faint);}
+  .day-head .arrow{margin-left:auto;color:var(--faint);font-size:12px;}
+  .day-body{display:none;margin-top:8px;}
+  .day.open .day-body{display:block;}
+  .slot{display:flex;gap:6px;margin-bottom:6px;align-items:center;}
+  .slot input{
+    background:var(--card2);border:1px solid var(--line);color:var(--text);
+    border-radius:7px;padding:6px 7px;font-size:13px;color-scheme:dark;min-width:0;
+  }
+  .slot .t1{width:74px;flex:none;}
+  .slot .t2{width:74px;flex:none;}
+  .slot .nm{flex:1;}
+  .slot .del{
+    width:26px;height:30px;flex:none;background:transparent;border:1px solid var(--line);
+    border-radius:7px;color:var(--faint);font-size:14px;cursor:pointer;
+  }
+
+  footer{border-top:1px solid var(--line);margin-top:30px;padding-top:16px;font-size:12px;color:var(--faint);}
+  .data-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+  .toast{
+    position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);
+    background:#262b38;border:1px solid #333a4a;color:var(--text);
+    padding:8px 16px;border-radius:99px;font-size:13px;opacity:0;
+    transition:.2s;pointer-events:none;z-index:9;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">2027 硕士统考 · 初试</div>
+    <div class="count">
+      <span class="big num" id="daysLeft">--</span>
+      <span class="unit">天</span>
+      <div class="sub">
+        <div>中国矿业大学（北京）</div>
+        <div>采矿工程 · 081901 · 学硕</div>
+      </div>
+    </div>
+    <div class="exam-src">
+      开考：<input type="date" id="examDate"> <span id="examWeekday" class="faint"></span>
+    </div>
+  </header>
+
+  <section>
+    <div class="sec-head"><h2>今天</h2><span class="tag" id="todayTag"></span></div>
+    <div class="today-grid">
+      <div class="stat"><div class="k">今日课表</div><div class="v" id="todayClassCount">-</div></div>
+      <div class="stat"><div class="k">可用学习时长</div><div class="v" id="todayFree">-</div></div>
+    </div>
+    <div class="card" style="margin-top:10px">
+      <div id="todayCourses"></div>
+      <div id="todayPlan" style="margin-top:8px"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>四科 · 分数与知识点</h2><span class="tag"><a href="week.html" style="color:var(--green)">一周计划 →</a> · <a href="pro.html" style="color:var(--amber)">825 刷题 →</a> · <a href="terms.html" style="color:var(--blue)">名词手册 →</a> · <a href="qa.html" style="color:var(--green)">简答论述 →</a></span></div>
+    <div id="subjects"></div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>一周课表</h2><span class="tag">排进课，规划会自动绕开</span></div>
+    <div class="card" id="week"></div>
+  </section>
+
+  <footer>
+    <div>数据只存在这台设备上。导出 JSON 可以随时带走。</div>
+    <div class="data-row">
+      <button class="btn" id="btnExport">导出 JSON</button>
+      <button class="btn" id="btnImport">导入 JSON</button>
+      <input type="file" id="fileImport" accept=".json,application/json" style="display:none">
+      <button class="btn ghost" id="btnReset">重置</button>
+    </div>
+    <div style="margin-top:12px" class="faint">30 天不是还剩 30 天，是只有 30 天。</div>
+  </footer>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var STORAGE_KEY = "kaoyan-cumtb-v2";
+  var EXAM_DEFAULT = "2026-12-19";   // 2027 考研初试开考日
+  var DAY_NAMES = ["日","一","二","三","四","五","六"];
+
+  function kp(t, id){ return {id:id, t:t, done:false}; }
+
+  var DEFAULT_STATE = {
+    examDate: EXAM_DEFAULT,
+    subjects: [
+      {
+        id:"pol", name:"政治", target:70, self:50, minutes:60,
+        kps:[
+          kp("马原：唯物论与辩证法主干","pol1"),
+          kp("马原：认识论、实践与真理","pol2"),
+          kp("马原：政治经济学与科社","pol3"),
+          kp("毛中特：核心考点二刷","pol4"),
+          kp("史纲：时间线 + 重大会议","pol5"),
+          kp("思修法基：易混条目","pol6"),
+          kp("时政：11 月前热点过一遍","pol7"),
+          kp("选择题错题本回看","pol8"),
+          kp("分析题模板与背默","pol9")
+        ]
+      },
+      {
+        id:"eng", name:"英语一", target:60, self:45, minutes:60,
+        kps:[
+          kp("核心词二刷（每天 100）","eng1"),
+          kp("长难句断句练习","eng2"),
+          kp("阅读真题 2015-2025 一刷","eng3"),
+          kp("阅读错题归因","eng4"),
+          kp("新题型：七选五 / 排序","eng5"),
+          kp("翻译：真题句子精译","eng6"),
+          kp("小作文：模板成型","eng7"),
+          kp("大作文：模板 + 两篇成稿","eng8"),
+          kp("完型：近五年过一遍","eng9")
+        ]
+      },
+      {
+        id:"math", name:"数学二", target:110, self:80, minutes:200,
+        kps:[
+          kp("高数：极限、连续与一元微分","math1"),
+          kp("高数：中值定理与导数应用","math2"),
+          kp("高数：不定积分与定积分","math3"),
+          kp("高数：定积分应用与反常积分","math4"),
+          kp("高数：多元微分与二重积分","math5"),
+          kp("高数：一阶/二阶微分方程","math6"),
+          kp("线代：行列式与矩阵","math7"),
+          kp("线代：向量组与线性方程组","math8"),
+          kp("线代：特征值与二次型","math9"),
+          kp("真题成套限时训练","math10"),
+          kp("错题重做 + 公式默写","math11")
+        ]
+      },
+      {
+        id:"pro", name:"825 矿山压力与岩层控制", target:125, self:110, minutes:135,
+        kps:[
+          kp("矿山压力基本概念与假说","pro1"),
+          kp("采场上覆岩层移动与“三带”","pro2"),
+          kp("采场支架—围岩关系","pro3"),
+          kp("顶板分类、来压与支架选型","pro4"),
+          kp("岩层控制技术（垮落/充填/煤柱）","pro5"),
+          kp("巷道矿压与支护","pro6"),
+          kp("冲击地压与动力灾害","pro7"),
+          kp("开采沉陷与地表移动","pro8"),
+          kp("近年真题成套做","pro9"),
+          kp("名词解释 + 简答答题框架","pro10")
+        ]
+      }
+    ],
+    schema: 2,
+    schedule: {
+      0: [],
+      1: [{s:"14:00", e:"15:50", n:"绿色开采技术"}],
+      2: [{s:"10:10", e:"12:00", n:"智能采掘系统"}],
+      3: [
+        {s:"10:10", e:"12:00", n:"矿山开采设计 CAD"},
+        {s:"16:10", e:"18:00", n:"煤底板等高线（实验）"},
+        {s:"19:00", e:"20:50", n:"井巷断面图设计"}
+      ],
+      4: [{s:"08:00", e:"11:00", n:"矿井通风与安全 C"}],
+      5: [],
+      6: []
+    }
+  };
+
+  var state = load();
+
+  function load(){
+    try{
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return clone(DEFAULT_STATE);
+      var s = JSON.parse(raw);
+      var st = merge(clone(DEFAULT_STATE), s);
+      if(st.schema !== 2){          // 课表换版本：旧课表作废，其余进度保留
+        st.schedule = clone(DEFAULT_STATE.schedule);
+        st.schema = 2;
+        try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(st)); }catch(e2){}
+      }
+      return st;
+    }catch(e){ return clone(DEFAULT_STATE); }
+  }
+  function clone(o){ return JSON.parse(JSON.stringify(o)); }
+  function merge(base, over){
+    if(!over || typeof over !== "object") return base;
+    Object.keys(over).forEach(function(k){
+      var v = over[k];
+      if(Array.isArray(v)){ base[k] = v; }
+      else if(v && typeof v === "object" && base[k] && !Array.isArray(base[k])){
+        base[k] = merge(base[k], v);
+      } else { base[k] = v; }
+    });
+    return base;
+  }
+  function save(){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+    catch(e){ toast("保存失败：存储空间不可用"); }
+  }
+
+  // ---------- 时间工具 ----------
+  function pad(n){ return (n<10?"0":"") + n; }
+  function dayStart(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+  function todayIndex(){ return new Date().getDay(); } // 0=周日
+  function m2h(m){ return pad(Math.floor(m/60)) + ":" + pad(m%60); }
+  function h2m(t){
+    if(!t) return NaN;
+    var p = String(t).split(":");
+    if(p.length < 2) return NaN;
+    var m = parseInt(p[0],10)*60 + parseInt(p[1],10);
+    return isNaN(m) ? NaN : m;
+  }
+  function addDays(d, n){ var x = new Date(d.getTime()); x.setDate(x.getDate()+n); return x; }
+  function dateKey(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
+
+  // ---------- 倒计时 ----------
+  function renderCountdown(){
+    var el = document.getElementById("daysLeft");
+    var now = new Date();
+    var today = dayStart(now);
+    var parts = (state.examDate || EXAM_DEFAULT).split("-");
+    var exam = new Date(+parts[0], +parts[1]-1, +parts[2]);
+    var diff = Math.round((dayStart(exam) - today) / 86400000);
+    el.textContent = diff >= 0 ? diff : "0";
+    document.getElementById("examDate").value = state.examDate || EXAM_DEFAULT;
+    var wd = DAY_NAMES[exam.getDay()];
+    document.getElementById("examWeekday").textContent = "· 周" + wd;
+    var t = new Date();
+    document.getElementById("todayTag").textContent =
+      t.getFullYear()+"."+pad(t.getMonth()+1)+"."+pad(t.getDate()) + " 周" + DAY_NAMES[t.getDay()];
+  }
+
+  // ---------- 今日课表与空闲 ----------
+  function todayCourses(){
+    var d = todayIndex();
+    return (state.schedule[d] || []).slice().sort(function(a,b){ return h2m(a.s) - h2m(b.s); });
+  }
+  function freeBlocks(dayIdx, from, to){
+    from = from || "07:00"; to = to || "23:30";
+    var cur = h2m(from), end = h2m(to);
+    var courses = (state.schedule[dayIdx] || [])
+      .map(function(c){ return {s:h2m(c.s), e:h2m(c.e), n:c.n}; })
+      .filter(function(c){ return !isNaN(c.s) && !isNaN(c.e) && c.e > c.s; })
+      .sort(function(a,b){ return a.s - b.s; });
+    var out = [], p = cur, pad2 = 10;
+    courses.forEach(function(c){
+      if(c.s > p) out.push({s:p, e:c.s});
+      p = Math.max(p, c.e + pad2);
+    });
+    if(p < end) out.push({s:p, e:end});
+    return out;
+  }
+
+  function renderToday(){
+    var day = todayIndex();
+    var courses = todayCourses();
+    document.getElementById("todayClassCount").textContent =
+      courses.length ? courses.length + " 节" : "无课";
+    var free = freeBlocks(day);
+    var totalMin = free.reduce(function(a,b){ return a + Math.max(0,b.e-b.s); }, 0);
+    document.getElementById("todayFree").textContent = (totalMin/60).toFixed(1) + " h";
+
+    var box = document.getElementById("todayCourses");
+    if(!courses.length){
+      box.innerHTML = '<div class="empty">今天没有课，整天都是你的。</div>';
+    } else {
+      box.innerHTML = courses.map(function(c){
+        return '<div class="course-item"><span class="t num">'+c.s+'–'+c.e+'</span><b>'+esc(c.n)+'</b></div>';
+      }).join("");
+    }
+
+    var plan = buildPlan(day);
+    var pbox = document.getElementById("todayPlan");
+    if(!plan.length){
+      pbox.innerHTML = '<div class="empty">今天排不进学习块了。课多的话，把碎片时间留给单词和默写。</div>';
+      return;
+    }
+    pbox.innerHTML = '<div class="small faint" style="margin-bottom:6px">今日建议排布</div>' +
+      plan.map(function(p){
+        return '<div class="plan-item"><span class="t num">'+m2h(p.s)+'–'+m2h(p.e)+'</span>'+
+               '<span class="n">'+esc(p.name)+'</span>'+
+               '<span class="tag">'+(p.e-p.s)+' min</span></div>';
+      }).join("");
+  }
+
+  function buildPlan(dayIdx){
+    var blocks = freeBlocks(dayIdx);
+    var queue = state.subjects
+      .filter(function(s){ return (s.minutes||0) > 0; })
+      .map(function(s){ return {id:s.id, name:s.name, left:s.minutes}; });
+    if(!queue.length) return [];
+    var plan = [];
+    blocks.forEach(function(b){
+      var cursor = b.s;
+      while(cursor < b.e){
+        var q = queue.find(function(x){ return x.left > 0; });
+        if(!q) break;
+        var take = Math.min(b.e - cursor, q.left, 90);
+        if(take < 15) break;
+        plan.push({s:cursor, e:cursor+take, name:q.name, id:q.id});
+        cursor += take;
+        q.left -= take;
+        queue.push(queue.shift());
+      }
+    });
+    return plan;
+  }
+
+  // ---------- 科目 ----------
+  function renderSubjects(){
+    var box = document.getElementById("subjects");
+    box.innerHTML = state.subjects.map(function(s, si){
+      var done = s.kps.filter(function(k){ return k.done; }).length;
+      var pct = s.kps.length ? Math.round(done*100/s.kps.length) : 0;
+      var kps = s.kps.map(function(k, ki){
+        return '<li class="'+(k.done?'on':'')+'" data-si="'+si+'" data-ki="'+ki+'">'+
+               '<i class="box">✓</i><span class="kp-txt">'+esc(k.t)+
+               (k.req ? ' <em class="faint" style="font-style:normal">·核对</em>' : '')+
+               '</span></li>';
+      }).join("");
+      return '<div class="card">'+
+        '<div class="subj-head"><i class="subj-dot"></i><span class="subj-name">'+esc(s.name)+'</span>'+
+        '<span class="pct">'+done+'/'+s.kps.length+'</span></div>'+
+        '<div class="meter"><i style="width:'+pct+'%"></i></div>'+
+        '<div class="fields">'+
+          '<div class="field"><label>目标分</label><input type="number" min="0" max="150" value="'+s.target+'" data-si="'+si+'" data-f="target"></div>'+
+          '<div class="field"><label>当前自评</label><input type="number" min="0" max="150" value="'+s.self+'" data-si="'+si+'" data-f="self"></div>'+
+          '<div class="field"><label>每日分钟</label><input type="number" min="0" max="600" step="10" value="'+s.minutes+'" data-si="'+si+'" data-f="minutes"></div>'+
+        '</div>'+
+        '<ul class="kps">'+kps+'</ul>'+
+        '<div class="kps-edit"><input type="text" placeholder="加一条知识点…" data-si="'+si+'" data-add="1">'+
+        '<button class="btn" data-si="'+si+'" data-addbtn="1">加</button></div>'+
+      '</div>';
+    }).join("");
+  }
+
+  // ---------- 周课表 ----------
+  function renderWeek(){
+    var box = document.getElementById("week");
+    box.innerHTML = [1,2,3,4,5,6,0].map(function(d){
+      var list = state.schedule[d] || [];
+      var slots = list.map(function(c, ci){
+        return '<div class="slot">'+
+          '<input class="t1" type="time" value="'+esc(c.s)+'" data-day="'+d+'" data-ci="'+ci+'" data-f="s">'+
+          '<input class="t2" type="time" value="'+esc(c.e)+'" data-day="'+d+'" data-ci="'+ci+'" data-f="e">'+
+          '<input class="nm" type="text" value="'+esc(c.n)+'" placeholder="课名" data-day="'+d+'" data-ci="'+ci+'" data-f="n">'+
+          '<button class="del" data-day="'+d+'" data-ci="'+ci+'" data-del="1">×</button>'+
+        '</div>';
+      }).join("");
+      return '<div class="day" data-day="'+d+'">'+
+        '<div class="day-head" data-toggle="'+d+'">'+
+          '<span class="dname">周'+DAY_NAMES[d]+'</span>'+
+          '<span class="dcnt">'+(list.length?list.length+' 节':'无课')+'</span>'+
+          '<span class="arrow">展开</span>'+
+        '</div>'+
+        '<div class="day-body">'+slots+
+          '<button class="btn ghost small" data-addslot="'+d+'">+ 加一节课</button>'+
+        '</div>'+
+      '</div>';
+    }).join("");
+  }
+
+  // ---------- 渲染 ----------
+  function renderAll(){
+    renderCountdown();
+    renderToday();
+    renderSubjects();
+    renderWeek();
+  }
+
+  function esc(s){
+    return String(s == null ? "" : s)
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+  }
+
+  function toast(msg){
+    var el = document.getElementById("toast");
+    el.textContent = msg; el.classList.add("show");
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function(){ el.classList.remove("show"); }, 1600);
+  }
+
+  // ---------- 事件 ----------
+  document.addEventListener("click", function(e){
+    var t = e.target;
+    if(!(t instanceof HTMLElement)) return;
+
+    // 知识点
+    var li = t.closest("li.kps-item, li[data-si]");
+    if(li && li.dataset && li.dataset.ki !== undefined && li.closest(".kps")){
+      var si = +li.dataset.si, ki = +li.dataset.ki;
+      var k = state.subjects[si].kps[ki];
+      k.done = !k.done;
+      save(); renderSubjects(); renderToday();
+      return;
+    }
+
+    // 课表展开
+    var head = t.closest("[data-toggle]");
+    if(head){
+      var dayEl = head.closest(".day");
+      dayEl.classList.toggle("open");
+      head.querySelector(".arrow").textContent = dayEl.classList.contains("open") ? "收起" : "展开";
+      return;
+    }
+
+    // 删除课
+    var del = t.closest("[data-del]");
+    if(del){
+      var d = +del.dataset.day, ci = +del.dataset.ci;
+      state.schedule[d].splice(ci, 1);
+      save(); renderWeek(); renderToday();
+      return;
+    }
+
+    // 加课
+    var add = t.closest("[data-addslot]");
+    if(add){
+      var dd = +add.dataset.addslot;
+      state.schedule[dd] = state.schedule[dd] || [];
+      state.schedule[dd].push({s:"08:00", e:"09:40", n:""});
+      save(); renderWeek(); renderToday();
+      var newDay = document.querySelector('.day[data-day="'+dd+'"]');
+      if(newDay && !newDay.classList.contains("open")){
+        newDay.classList.add("open");
+        var ar = newDay.querySelector(".arrow"); if(ar) ar.textContent = "收起";
+      }
+      return;
+    }
+
+    // 加知识点
+    var addBtn = t.closest("[data-addbtn]");
+    if(addBtn){
+      var si2 = +addBtn.dataset.si;
+      var input = document.querySelector('input[data-si="'+si2+'"][data-add="1"]');
+      if(input && input.value.trim()){
+        state.subjects[si2].kps.push({id:"k"+Date.now(), t:input.value.trim(), done:false});
+        input.value = "";
+        save(); renderSubjects(); renderToday();
+      }
+      return;
+    }
+
+    // 导入 / 导出 / 重置
+    if(t.id === "btnExport") return doExport();
+    if(t.id === "btnImport") return document.getElementById("fileImport").click();
+    if(t.id === "btnReset") return doReset();
+  });
+
+  document.addEventListener("keydown", function(e){
+    if(e.key !== "Enter") return;
+    var t = e.target;
+    if(t && t.matches && t.matches('input[data-add="1"]')){
+      var si = +t.dataset.si;
+      if(t.value.trim()){
+        state.subjects[si].kps.push({id:"k"+Date.now(), t:t.value.trim(), done:false});
+        t.value = "";
+        save(); renderSubjects(); renderToday();
+      }
+    }
+  });
+
+  document.addEventListener("change", function(e){
+    var t = e.target;
+    if(!(t instanceof HTMLInputElement)) return;
+
+    if(t.id === "examDate"){
+      if(t.value){ state.examDate = t.value; save(); renderCountdown(); renderToday(); }
+      return;
+    }
+
+    // 科目数字
+    if(t.dataset && t.dataset.si !== undefined && t.dataset.f){
+      var si = +t.dataset.si;
+      var f = t.dataset.f;
+      var v = parseInt(t.value, 10);
+      if(isNaN(v)) v = 0;
+      state.subjects[si][f] = v;
+      save(); renderSubjects(); renderToday();
+      return;
+    }
+
+    // 课表字段
+    if(t.dataset && t.dataset.day !== undefined && t.dataset.ci !== undefined && t.dataset.f){
+      var d = +t.dataset.day, ci = +t.dataset.ci, ff = t.dataset.f;
+      if(!state.schedule[d] || !state.schedule[d][ci]) return;
+      state.schedule[d][ci][ff] = t.value;
+      save(); renderToday();
+      return;
+    }
+  });
+
+  document.getElementById("fileImport").addEventListener("change", function(e){
+    var file = e.target.files && e.target.files[0];
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(){
+      try{
+        var data = JSON.parse(reader.result);
+        state = merge(clone(DEFAULT_STATE), data);
+        save(); renderAll(); toast("已导入");
+      }catch(err){ toast("文件读不出来"); }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  });
+
+  function doExport(){
+    var blob = new Blob([JSON.stringify(state, null, 2)], {type:"application/json"});
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "kaoyan-" + dateKey(new Date()) + ".json";
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+    toast("已导出");
+  }
+
+  function doReset(){
+    if(!confirm("清空所有打卡和课表，回到初始模板？")) return;
+    state = clone(DEFAULT_STATE);
+    save(); renderAll(); toast("已重置");
+  }
+
+  // 跨天时刷新
+  var lastDay = dateKey(new Date());
+  setInterval(function(){
+    var d = dateKey(new Date());
+    if(d !== lastDay){ lastDay = d; renderAll(); }
+    else { renderCountdown(); }
+  }, 60000);
+
+  renderAll();
+})();
+</script>
+</body>
+</html>

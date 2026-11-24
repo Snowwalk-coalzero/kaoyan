@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1115">
+<title>825 刷题 · 矿山压力与岩层控制</title>
+<style>
+  :root{
+    --bg:#0f1115; --card:#171a21; --card2:#1d212b; --line:#262b38;
+    --text:#e9ecf3; --dim:#8a92a6; --faint:#5d6579;
+    --amber:#e0a458; --green:#5fb47a; --red:#e06c6c; --blue:#6aa6e0;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);color:var(--text);
+    font-family:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:15px;line-height:1.65;
+    padding:0 0 env(safe-area-inset-bottom);
+  }
+  .wrap{max-width:680px;margin:0 auto;padding:16px 16px 40px;}
+  a{color:var(--amber);text-decoration:none;}
+  .muted{color:var(--dim);} .faint{color:var(--faint);}
+  .num{font-variant-numeric:tabular-nums;}
+
+  header{border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:14px;}
+  .row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .back{font-size:13px;color:var(--dim);}
+  .eyebrow{font-size:12px;letter-spacing:.1em;color:var(--faint);margin-left:auto;}
+  .prog-bar{height:6px;background:var(--card2);border-radius:99px;overflow:hidden;}
+  .prog-bar i{display:block;height:100%;width:0;background:var(--green);border-radius:99px;transition:width .25s;}
+  .prog-txt{display:flex;justify-content:space-between;font-size:12px;color:var(--faint);margin-top:5px;}
+
+  .filters{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px;}
+  .chip{
+    background:var(--card2);border:1px solid var(--line);color:var(--dim);
+    border-radius:99px;padding:5px 12px;font-size:12.5px;cursor:pointer;
+  }
+  .chip.on{background:rgba(224,164,88,.14);border-color:rgba(224,164,88,.5);color:var(--amber);}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;}
+  .q-head{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .badge{font-size:11px;padding:1px 8px;border-radius:99px;border:1px solid var(--line);color:var(--dim);}
+  .badge.term{color:var(--blue);border-color:rgba(106,166,224,.4);}
+  .badge.essay{color:var(--amber);border-color:rgba(224,164,88,.4);}
+  .idx{margin-left:auto;font-size:12px;color:var(--faint);}
+  .q-text{font-size:17px;line-height:1.5;font-weight:600;}
+  .q-sub{font-size:12.5px;color:var(--faint);margin-top:6px;}
+
+  .reveal{
+    width:100%;margin-top:16px;background:var(--card2);border:1px solid var(--line);
+    color:var(--text);border-radius:10px;padding:11px;font-size:14px;cursor:pointer;
+  }
+  .reveal:active{transform:scale(.99);}
+
+  .ans{margin-top:14px;border-top:1px dashed var(--line);padding-top:14px;}
+  .ans-label{font-size:12px;color:var(--faint);letter-spacing:.06em;margin-bottom:6px;}
+  .ans-list{margin:0 0 14px;padding-left:18px;font-size:14px;color:var(--text);}
+  .ans-list li{margin-bottom:5px;}
+  .kw-label{font-size:12px;color:var(--faint);letter-spacing:.06em;margin-bottom:6px;}
+  .kws{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
+  .kw{font-size:12.5px;padding:3px 9px;border-radius:6px;background:rgba(95,180,122,.12);
+      color:var(--green);border:1px solid rgba(95,180,122,.3);}
+  .actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .btn{
+    background:var(--card2);border:1px solid var(--line);color:var(--text);
+    border-radius:10px;padding:11px;font-size:14px;cursor:pointer;
+  }
+  .btn:active{transform:scale(.98);}
+  .btn.ok{border-color:rgba(95,180,122,.5);color:var(--green);}
+  .btn.bad{border-color:rgba(224,108,108,.5);color:var(--red);}
+  .btn.ghost{background:transparent;color:var(--dim);}
+  .btn.warn{color:var(--red);}
+
+  .nav{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;}
+
+  .done{text-align:center;padding:30px 10px;}
+  .done .big{font-size:30px;font-weight:700;}
+  .done .txt{color:var(--dim);font-size:14px;margin:8px 0 16px;}
+
+  footer{border-top:1px solid var(--line);margin-top:26px;padding-top:14px;font-size:12px;color:var(--faint);}
+  .data-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+  .toast{
+    position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);
+    background:#262b38;border:1px solid #333a4a;color:var(--text);
+    padding:8px 16px;border-radius:99px;font-size:13px;opacity:0;
+    transition:.2s;pointer-events:none;z-index:9;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="row">
+      <a class="back" href="index.html">‹ 回看板</a>
+      <a class="back" href="terms.html" style="color:var(--blue)">名词手册 →</a> <a class="back" href="qa.html" style="color:var(--green);margin-left:10px">简答论述 →</a>
+      <span class="eyebrow">825 矿山压力与岩层控制</span>
+    </div>
+    <div class="prog-bar"><i id="progFill"></i></div>
+    <div class="prog-txt"><span id="progTxt">0 / 0 掌握</span><span id="leftTxt"></span></div>
+  </header>
+
+  <div class="filters" id="filters">
+    <button class="chip on" data-f="all">全部</button>
+    <button class="chip" data-f="new">未做</button>
+    <button class="chip" data-f="bad">没记住</button>
+    <button class="chip" data-f="term">名词解释</button>
+    <button class="chip" data-f="essay">论述</button>
+    <button class="chip" data-f="__shuffle">随机</button>
+  </div>
+
+  <div id="cardBox"></div>
+
+  <div class="nav">
+    <button class="btn ghost" id="prevBtn">上一题</button>
+    <button class="btn ghost" id="nextBtn">下一题</button>
+  </div>
+
+  <footer>
+    <div>自评式刷题：先自己口述，再看答案对关键词。说到要点就算过。</div>
+    <div>题目与要点是初版，按通用教材整理，最终以你手上的指定参考书和真题为准。</div>
+    <div class="data-row">
+      <button class="btn" id="btnExport">导出记录</button>
+      <button class="btn" id="btnImport">导入记录</button>
+      <input type="file" id="fileImport" accept=".json,application/json" style="display:none">
+      <button class="btn ghost warn" id="btnReset">清空记录</button>
+    </div>
+  </footer>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var KEY = "kaoyan-825-v1";
+
+  /* ---------------- 题库 ---------------- */
+  var BANK = [
+    {id:"n01", type:"term", q:"矿山压力",
+     kws:["采掘活动","应力重新分布","围岩与支护","作用力"],
+     a:["地下采掘活动打破了岩体原有平衡，引起岩体内应力重新分布。",
+        "重新分布后的应力作用在围岩和支护物上，就形成矿山压力。",
+        "它指的是“力”本身，不是变形现象。"]},
+
+    {id:"n02", type:"term", q:"矿山压力显现",
+     kws:["变形破坏","支架受力","顶板下沉","片帮"],
+     a:["矿山压力作用下，围岩产生变形、破坏、移动。",
+        "表现为顶板下沉、底鼓、片帮、支架受压变形等。",
+        "它是压力的外部表现，与矿山压力本身要区分开。"]},
+
+    {id:"n03", type:"term", q:"原岩应力（地应力）",
+     kws:["采掘前","天然应力","自重应力","构造应力"],
+     a:["采掘活动之前，原岩体中已经存在的天然应力状态。",
+        "主要由自重应力和构造应力组成。",
+        "是矿山压力的初始条件。"]},
+
+    {id:"n04", type:"term", q:"支承压力",
+     kws:["采动引起","应力集中","煤壁前方","两侧"],
+     a:["采动后在采场周围煤岩体中形成的应力升高区。",
+        "工作面煤壁前方叫超前支承压力，两侧叫侧向支承压力。",
+        "它是顶板管理和巷道支护要重点对付的力。"]},
+
+    {id:"n05", type:"term", q:"老顶（基本顶）",
+     kws:["直接顶之上","坚硬","来压","大面积垮落"],
+     a:["位于直接顶之上、强度较高的岩层。",
+        "不易随采随垮，能大面积悬露，垮落时造成来压。",
+        "采场矿压显现主要由老顶的破断垮落决定。"]},
+
+    {id:"n06", type:"term", q:"直接顶",
+     kws:["煤层之上","随采随垮","悬露"],
+     a:["直接位于煤层上方、随回采而垮落的岩层。",
+        "强度较低，悬露面积有限，是支架直接支撑的对象。"]},
+
+    {id:"n07", type:"term", q:"伪顶",
+     kws:["紧贴煤层","薄","随煤垮落","软岩"],
+     a:["紧贴煤层顶板、厚度很小、极易垮落的软岩层。",
+        "常在落煤时随之垮落，支护上基本无法保留。"]},
+
+    {id:"n08", type:"term", q:"初次来压",
+     kws:["老顶","第一次大面积垮落","压力骤增"],
+     a:["工作面推进到一定距离，老顶第一次大面积垮落。",
+        "此时顶板压力急剧增大、支架载荷突增、顶板下沉加快。",
+        "这个距离叫初次来压步距。"]},
+
+    {id:"n09", type:"term", q:"周期来压",
+     kws:["周期性","老顶破断","来压步距"],
+     a:["初次来压之后，随工作面继续推进，老顶呈周期性破断垮落。",
+        "顶板压力周期性增大，间隔距离叫周期来压步距。",
+        "周期来压步距一般小于初次来压步距。"]},
+
+    {id:"n10", type:"term", q:"上覆岩层“三带”",
+     kws:["垮落带","裂隙带","弯曲下沉带"],
+     a:["采空区上覆岩层按破坏程度分为三带。",
+        "垮落带：岩层破断成块并垮落。",
+        "裂隙带（断裂带）：岩层断裂但保持层状，裂隙发育。",
+        "弯曲下沉带：整体弯曲下沉，连续性基本保持。"]},
+
+    {id:"n11", type:"term", q:"关键层",
+     kws:["坚硬岩层","控制作用","承载"],
+     a:["对上覆岩层移动起主要控制作用的坚硬岩层。",
+        "它破断前承担上方岩层载荷，破断后引起大范围岩层移动。",
+        "主关键层控制整个上覆岩层直至地表的移动。"]},
+
+    {id:"n12", type:"term", q:"砌体梁",
+     kws:["断裂岩块","铰接","承载结构","钱鸣高"],
+     a:["老顶破断后，岩块之间相互挤压铰接形成的结构。",
+        "它能把部分上覆岩层载荷传递到煤壁和采空区。",
+        "是解释采场矿压的重要假说（钱鸣高）。"]},
+
+    {id:"n13", type:"term", q:"传递岩梁",
+     kws:["岩梁","传递载荷","煤壁与采空区","宋振骐"],
+     a:["把老顶看作断裂后仍能传递载荷的岩梁。",
+        "载荷一部分传给煤壁，一部分传给采空区冒落矸石。",
+        "是“传递岩梁”假说的核心（宋振骐）。"]},
+
+    {id:"n14", type:"term", q:"顶板分类",
+     kws:["直接顶稳定性","老顶来压强度","分级","支架选型"],
+     a:["按直接顶的稳定程度和老顶的来压强度对顶板分级。",
+        "直接顶按稳定性分类，老顶按来压强度分级。",
+        "目的是为支架选型和顶板管理提供依据。"]},
+
+    {id:"n15", type:"term", q:"支架工作阻力",
+     kws:["额定","承受载荷","支撑"],
+     a:["支架能够承受的顶板载荷，一般指额定工作阻力。",
+        "单位常用 kN，是支架选型的核心参数。",
+        "实际工作阻力受初撑力、顶板下沉等影响。"]},
+
+    {id:"n16", type:"term", q:"初撑力",
+     kws:["架设时","主动","支撑力"],
+     a:["支架架设时主动对顶板施加的支撑力。",
+        "初撑力不足会导致顶板早期离层、下沉。",
+        "提高初撑力是控制顶板的重要措施。"]},
+
+    {id:"n17", type:"term", q:"恒阻",
+     kws:["额定阻力","让压","阻力基本不变"],
+     a:["支架达到额定工作阻力后，允许顶板继续下沉。",
+        "下沉过程中阻力基本保持不变。",
+        "恒阻特性使支架既能承载又不被压坏。"]},
+
+    {id:"n18", type:"term", q:"让压",
+     kws:["允许变形","释放压力","支护"],
+     a:["支护结构允许围岩产生一定变形，以释放部分压力。",
+        "与“硬顶”相对，是柔性支护的基本思路。",
+        "让压量要控制，让得过多就失去支撑。"]},
+
+    {id:"n19", type:"term", q:"冲击地压",
+     kws:["高应力","突然","猛烈破坏","弹性能释放"],
+     a:["煤岩体在高应力作用下突然、猛烈破坏的动力现象。",
+        "伴随大量弹性能瞬间释放，可抛出煤岩、损坏支架。",
+        "属矿山动力灾害，与顶板型、煤层型、断层型等有关。"]},
+
+    {id:"n20", type:"term", q:"地表移动盆地",
+     kws:["地下开采","地表下沉","凹形","移动范围"],
+     a:["地下开采后地表下沉形成的凹形区域。",
+        "范围大于采空区，由下沉、倾斜、曲率、水平移动描述。",
+        "是“三下”采煤和地面保护的基础。"]},
+
+    {id:"n21", type:"term", q:"充分采动",
+     kws:["采空区尺寸足够","下沉达最大"],
+     a:["采空区尺寸达到一定程度后，地表最大下沉值不再增大。",
+        "此时称充分采动（或超充分采动）。",
+        "未达到的叫非充分采动。"]},
+
+    {id:"n22", type:"term", q:"移动角",
+     kws:["移动盆地边界","夹角","岩层移动"],
+     a:["地表移动盆地边界与水平线（或煤柱边缘）之间的夹角。",
+        "用于圈定地表移动范围、留设保护煤柱。",
+        "与岩性、采深、采厚有关。"]},
+
+    {id:"n23", type:"term", q:"松动圈",
+     kws:["巷道开挖","围岩松动","环状区域"],
+     a:["巷道开挖后，围岩应力重新分布，在周边形成的松动破坏区。",
+        "呈环状包围巷道，厚度与岩性、支护、断面有关。",
+        "松动圈越大，支护越要往深部锚固。"]},
+
+    {id:"n24", type:"term", q:"采动影响",
+     kws:["应力状态改变","围岩变形","影响范围"],
+     a:["采掘活动使周围岩体应力状态改变、围岩变形破坏的作用。",
+        "分超前影响、侧向影响、采空区影响等。",
+        "巷道布置要尽量避开强烈采动影响区。"]},
+
+    {id:"e01", type:"essay", q:"采场上覆岩层“三带”是如何形成的？分带依据是什么？",
+     kws:["垮落带","裂隙带","弯曲下沉带","岩层强度","离层"],
+     a:["煤层采出后，采空区上方岩层失去支撑，应力重新分布并向下移动。",
+        "下部岩层弯曲超过极限强度即破断，碎胀后充填采空区，形成垮落带。",
+        "中部岩层断裂但碎胀不足以自由垮落，层间离层、裂隙发育，形成裂隙带。",
+        "上部岩层整体弯曲下沉、连续性基本保持，形成弯曲下沉带。",
+        "分带依据：岩层破断与否、碎胀系数、离层与裂隙发育程度、下沉量。"]},
+
+    {id:"e02", type:"essay", q:"初次来压与周期来压的机理、区别及防治措施。",
+     kws:["老顶悬露","第一次垮落","周期破断","来压步距","支架选型"],
+     a:["机理：老顶悬露面积增大，自重及上覆载荷超过其强度而破断垮落，压力传到支架。",
+        "初次来压：老顶第一次大面积垮落，来压步距大、强度高、影响范围广。",
+        "周期来压：初次来压后老顶呈周期性破断，步距小、频次高、强度相对低。",
+        "区别：来压步距、强度、持续时间、对支架的冲击程度不同。",
+        "防治：合理确定支架工作阻力、提高初撑力、加强顶板监测、必要时强制放顶或注浆加固。"]},
+
+    {id:"e03", type:"essay", q:"采场支架工作阻力应如何确定？",
+     kws:["顶板载荷","估算法","实测法","数值模拟","安全系数"],
+     a:["核心是确定支架需要承担的顶板载荷（老顶+直接顶+部分上覆岩层）。",
+        "估算法：按直接顶厚度、老顶来压强度、悬顶面积估算载荷。",
+        "实测法：用矿压观测数据反算实际工作阻力，最可靠。",
+        "数值模拟：用 FLAC/UDEC 等分析顶板活动与支架受力。",
+        "最后乘以安全系数并考虑地质条件修正。"]},
+
+    {id:"e04", type:"essay", q:"顶板分类分级的目的与依据。",
+     kws:["直接顶稳定性","老顶来压强度","支架选型","顶板管理"],
+     a:["目的：为支架选型、顶板管理和安全措施提供统一依据。",
+        "直接顶分类：按其稳定性（强度、分层厚度、裂隙）分级。",
+        "老顶分级：按来压强度（来压步距、动载系数）分级。",
+        "依据来自现场实测、岩石力学指标和矿压观测资料。",
+        "分类结果直接对应支护方式和支架阻力要求。"]},
+
+    {id:"e05", type:"essay", q:"冲击地压的发生条件与防治措施。",
+     kws:["高应力","弹性能","坚硬顶板","诱发","卸压"],
+     a:["条件：煤岩体具备高应力集中、高弹性储能和突然释放的条件。",
+        "常见于坚硬顶板、孤岛工作面、断层附近、深部开采。",
+        "诱因：采动、放炮、顶板大面积来压等。",
+        "防治：合理开采布局避开应力集中、煤层注水、卸压爆破、钻孔卸压。",
+        "支护上采用让压、强支护，并建立微震/应力监测预警。"]},
+
+    {id:"e06", type:"essay", q:"沿空掘巷（或沿空留巷）的矿压控制思路。",
+     kws:["采空区边缘","应力降低区","窄煤柱","支护"],
+     a:["利用采空区边缘的应力降低区布置巷道，避开高支承压力。",
+        "沿空掘巷：留窄煤柱或不留煤柱，紧贴采空区掘进。",
+        "关键：掌握侧向支承压力分布与顶板断裂位置。",
+        "支护要点：及时支护、提高初撑力、控制顶板离层。",
+        "留巷还要处理采空区侧顶板与巷旁充填/支护。"]},
+
+    {id:"e07", type:"essay", q:"开采沉陷的基本规律与“三下”采煤。",
+     kws:["移动盆地","充分采动","移动角","地表变形","保护煤柱"],
+     a:["地下开采使上覆岩层移动，地表形成移动盆地。",
+        "参数包括下沉、倾斜、曲率、水平移动和移动角。",
+        "采空区尺寸足够大时达到充分采动，下沉值不再增大。",
+        "“三下”指建筑物下、铁路下、水体下采煤。",
+        "措施：留设保护煤柱、条带开采、充填开采、协调开采等。"]},
+
+    {id:"e08", type:"essay", q:"采场矿压观测的主要内容与方法。",
+     kws:["支架载荷","顶板下沉","来压预测","测站"],
+     a:["观测内容：支架工作阻力、顶板下沉量、顶板离层、煤壁片帮、来压步距。",
+        "方法：支架压力表/在线监测、顶板下沉量测、离层仪、微震与应力监测。",
+        "布点：沿工作面倾向布置测站，覆盖上中下部。",
+        "目的：判断来压规律、检验支架选型、指导顶板管理。"]}
+  ];
+
+  /* ---------------- 状态 ---------------- */
+  var state = {rec:{}};
+  try{
+    var raw = localStorage.getItem(KEY);
+    if(raw){
+      var s = JSON.parse(raw);
+      if(s && s.rec && typeof s.rec === "object") state.rec = s.rec;
+    }
+  }catch(e){}
+  function save(){
+    try{ localStorage.setItem(KEY, JSON.stringify(state)); }
+    catch(e){ toast("存储不可用"); }
+  }
+
+  var filter = "all";
+  var idx = 0;
+  var list = [];
+
+  function lvOf(id){
+    var r = state.rec[id];
+    return r ? r.lv : 0;   // 0 未做 / 1 没记住 / 2 掌握
+  }
+
+  function shuffle(arr){
+    for(var i = arr.length - 1; i > 0; i--){
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+    }
+    return arr;
+  }
+
+  function computeList(){
+    var keep = filter === "__shuffle" ? "all" : filter;
+    list = BANK.filter(function(q){
+      var lv = lvOf(q.id);
+      if(keep === "new") return lv === 0;
+      if(keep === "bad") return lv === 1;
+      if(keep === "term") return q.type === "term";
+      if(keep === "essay") return q.type === "essay";
+      return true;
+    });
+    if(shuffled) list = shuffle(list.slice());
+    if(idx >= list.length) idx = 0;
+    if(idx < 0) idx = 0;
+  }
+  var shuffled = false;
+
+  /* ---------------- 渲染 ---------------- */
+  function render(){
+    var box = document.getElementById("cardBox");
+
+    if(idx >= list.length){
+      var done = list.length > 0;
+      box.innerHTML = '<div class="card done">'+
+        '<div class="big num">'+(done ? "这轮过完了" : "没有题")+'</div>'+
+        '<div class="txt">'+(done ? "换个筛选，或者从头再来一遍。" : "这个筛选条件下是空的。")+'</div>'+
+        '<button class="btn" id="restartBtn">从头再来</button></div>';
+      bindRestart();
+      renderStats();
+      return;
+    }
+
+    var q = list[idx];
+    var lv = lvOf(q.id);
+    var typeName = q.type === "term" ? "名词解释" : "论述";
+    var tips = q.type === "term"
+      ? "先自己说一遍，再对答案。"
+      : "先列要点框架，再看答案对照。";
+
+    box.innerHTML =
+      '<div class="card">'+
+        '<div class="q-head">'+
+          '<span class="badge '+q.type+'">'+typeName+'</span>'+
+          (lv === 2 ? '<span class="badge" style="color:var(--green);border-color:rgba(95,180,122,.4)">已掌握</span>' : '')+
+          (lv === 1 ? '<span class="badge" style="color:var(--red);border-color:rgba(224,108,108,.4)">没记住</span>' : '')+
+          '<span class="idx num">'+(idx+1)+' / '+list.length+'</span>'+
+        '</div>'+
+        '<div class="q-text">'+esc(q.q)+'</div>'+
+        '<div class="q-sub">'+tips+'</div>'+
+        '<button class="reveal" id="revealBtn">看答案</button>'+
+        '<div class="ans" id="ansBox" style="display:none">'+
+          '<div class="ans-label">答案要点</div>'+
+          '<ul class="ans-list">'+q.a.map(function(x){ return '<li>'+esc(x)+'</li>'; }).join("")+'</ul>'+
+          '<div class="kw-label">关键词</div>'+
+          '<div class="kws">'+q.kws.map(function(k){ return '<span class="kw">'+esc(k)+'</span>'; }).join("")+'</div>'+
+          '<div class="actions">'+
+            '<button class="btn ok" data-mark="2">说到了</button>'+
+            '<button class="btn bad" data-mark="1">没说到</button>'+
+          '</div>'+
+        '</div>'+
+      '</div>';
+
+    bindReveal();
+    renderStats();
+  }
+
+  function bindReveal(){
+    var b = document.getElementById("revealBtn");
+    if(!b) return;
+    b.addEventListener("click", function(){
+      document.getElementById("ansBox").style.display = "block";
+      b.style.display = "none";
+    });
+  }
+  function bindRestart(){
+    var b = document.getElementById("restartBtn");
+    if(!b) return;
+    b.addEventListener("click", function(){
+      idx = 0; computeList(); render();
+    });
+  }
+
+  function renderStats(){
+    var total = BANK.length;
+    var done = 0, bad = 0;
+    BANK.forEach(function(q){
+      var lv = lvOf(q.id);
+      if(lv === 2) done++;
+      if(lv === 1) bad++;
+    });
+    document.getElementById("progFill").style.width = (total ? done*100/total : 0) + "%";
+    document.getElementById("progTxt").textContent = done + " / " + total + " 掌握";
+    document.getElementById("leftTxt").textContent = "没记住 " + bad + " · 未做 " + (total - done - bad);
+  }
+
+  function esc(s){
+    return String(s == null ? "" : s)
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+  }
+
+  var toastTimer = null;
+  function toast(msg){
+    var el = document.getElementById("toast");
+    el.textContent = msg; el.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ el.classList.remove("show"); }, 1600);
+  }
+
+  /* ---------------- 事件 ---------------- */
+  document.getElementById("filters").addEventListener("click", function(e){
+    var t = e.target.closest("[data-f]");
+    if(!t) return;
+    var f = t.dataset.f;
+
+    if(f === "__shuffle"){
+      shuffled = !shuffled;
+      t.classList.toggle("on", shuffled);
+      idx = 0; computeList(); render();
+      toast(shuffled ? "已切到随机顺序" : "已切回顺序");
+      return;
+    }
+
+    filter = f;
+    document.querySelectorAll("#filters .chip").forEach(function(c){
+      if(c.dataset.f !== "__shuffle") c.classList.toggle("on", c.dataset.f === f);
+    });
+    idx = 0; computeList(); render();
+  });
+
+  document.getElementById("cardBox").addEventListener("click", function(e){
+    var t = e.target.closest("[data-mark]");
+    if(!t) return;
+    var lv = +t.dataset.mark;
+    var q = list[idx];
+    if(!q) return;
+    state.rec[q.id] = {lv:lv, ts:Date.now()};
+    save();
+    if(idx < list.length - 1){
+      idx++;
+      render();
+    } else {
+      idx = list.length;   // 走到结束页
+      render();
+    }
+  });
+
+  document.getElementById("prevBtn").addEventListener("click", function(){
+    if(idx > 0){ idx--; if(idx >= list.length) idx = list.length - 1; computeList(); render(); }
+  });
+  document.getElementById("nextBtn").addEventListener("click", function(){
+    if(idx < list.length){ idx++; render(); }
+  });
+
+  document.getElementById("btnExport").addEventListener("click", function(){
+    var blob = new Blob([JSON.stringify(state, null, 2)], {type:"application/json"});
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "825-records.json";
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+    toast("已导出");
+  });
+  document.getElementById("btnImport").addEventListener("click", function(){
+    document.getElementById("fileImport").click();
+  });
+  document.getElementById("fileImport").addEventListener("change", function(e){
+    var file = e.target.files && e.target.files[0];
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(){
+      try{
+        var d = JSON.parse(reader.result);
+        if(d && d.rec && typeof d.rec === "object"){
+          state.rec = d.rec; save(); computeList(); render(); toast("已导入");
+        } else { toast("这不像记录文件"); }
+      }catch(err){ toast("文件读不出来"); }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  });
+  document.getElementById("btnReset").addEventListener("click", function(){
+    if(!confirm("清空所有刷题记录？")) return;
+    state.rec = {}; save(); idx = 0; computeList(); render(); toast("已清空");
+  });
+
+  /* 上下键翻页 */
+  document.addEventListener("keydown", function(e){
+    if(e.key === "ArrowLeft") document.getElementById("prevBtn").click();
+    if(e.key === "ArrowRight") document.getElementById("nextBtn").click();
+  });
+
+  computeList();
+  render();
+})();
+</script>
+</body>
+</html>
