@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1115">
+<title>高频词 · 认词自测</title>
+<style>
+  :root{
+    --bg:#0f1115; --card:#171a21; --card2:#1d212b; --line:#262b38;
+    --text:#e9ecf3; --dim:#8a92a6; --faint:#5d6579;
+    --amber:#e0a458; --green:#5fb47a; --red:#e06c6c; --blue:#6aa6e0;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:15px; line-height:1.65;
+    padding:0 0 env(safe-area-inset-bottom);
+  }
+  .wrap{max-width:680px;margin:0 auto;padding:16px 16px 40px;}
+  a{color:var(--amber);text-decoration:none;}
+  .muted{color:var(--dim);} .faint{color:var(--faint);}
+  .num{font-variant-numeric:tabular-nums;}
+
+  header{border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:14px;}
+  .row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .back{font-size:13px;color:var(--dim);}
+  .eyebrow{font-size:12px;letter-spacing:.1em;color:var(--faint);margin-left:auto;}
+  h1{font-size:20px;margin:2px 0 6px;font-weight:600;}
+  .sub{font-size:13px;color:var(--dim);}
+
+  .prog-bar{height:6px;background:var(--card2);border-radius:99px;overflow:hidden;margin-top:10px;}
+  .prog-bar i{display:block;height:100%;width:0;background:var(--green);border-radius:99px;transition:width .25s;}
+  .prog-txt{display:flex;justify-content:space-between;font-size:12px;color:var(--faint);margin-top:5px;}
+
+  .btn{
+    background:var(--card2);border:1px solid var(--line);color:var(--dim);
+    border-radius:10px;padding:9px 12px;font-size:13px;cursor:pointer;white-space:nowrap;
+  }
+  .btn:active{transform:scale(.98);}
+  .btn.primary{color:#0f1115;background:var(--amber);border-color:var(--amber);font-weight:600;}
+  .btn.green{color:#0f1115;background:var(--green);border-color:var(--green);font-weight:600;}
+  .btn.red{color:#0f1115;background:var(--red);border-color:var(--red);font-weight:600;}
+
+  .tip{
+    font-size:12.5px;color:var(--dim);margin:0 0 16px;
+    border-left:2px solid var(--amber);padding-left:9px;line-height:1.65;
+  }
+
+  .today-box{
+    background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:14px;margin-bottom:16px;
+  }
+  .today-box .lb{font-size:12px;color:var(--faint);letter-spacing:.04em;}
+  .today-box .big{font-size:17px;font-weight:600;margin:6px 0 10px;}
+  .today-box .acts{display:flex;gap:8px;flex-wrap:wrap;}
+
+  h2.ch{font-size:13px;font-weight:600;color:var(--dim);letter-spacing:.04em;margin:24px 0 10px;}
+
+  .units{display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:8px;}
+  .unit{
+    background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:9px 8px;text-align:center;cursor:pointer;
+  }
+  .unit.done{border-color:rgba(95,180,122,.4);}
+  .unit.cur{border-color:rgba(224,164,88,.6);background:rgba(224,164,88,.08);}
+  .unit .n{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;}
+  .unit .m{font-size:11px;color:var(--faint);margin-top:2px;}
+  .unit .r{font-size:11px;color:var(--red);}
+
+  /* ---- 卡片 ---- */
+  .quiz{position:fixed;inset:0;background:var(--bg);z-index:20;display:none;flex-direction:column;
+    padding:14px max(16px,calc(50vw - 340px)) calc(14px + env(safe-area-inset-bottom));}
+  .quiz.show{display:flex;}
+  .quiz-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+  .quiz-top .btn{padding:6px 12px;font-size:12.5px;}
+  .q-prog{font-size:12.5px;color:var(--dim);font-variant-numeric:tabular-nums;}
+
+  .q-body{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;overflow:auto;padding-bottom:8px;text-align:center;}
+  .q-word{font-size:40px;font-weight:600;letter-spacing:.01em;line-height:1.25;word-break:break-word;}
+  .q-hint{font-size:12px;color:var(--faint);margin-top:12px;}
+  .q-answer{display:none;margin-top:22px;}
+  .q-answer.show{display:block;}
+  .q-zh{font-size:22px;color:var(--text);line-height:1.5;}
+  .q-mark{font-size:12.5px;margin-top:12px;}
+  .q-mark.red{color:var(--red);}
+  .q-mark.ok{color:var(--green);}
+
+  .q-acts{display:flex;gap:9px;margin-top:14px;}
+  .q-acts .btn{flex:1;text-align:center;padding:14px 8px;font-size:15px;}
+
+  .done-box{text-align:center;padding:40px 0;}
+  .done-box .big{font-size:26px;font-weight:600;margin-bottom:8px;}
+
+  footer{border-top:1px solid var(--line);margin-top:28px;padding-top:14px;font-size:12px;color:var(--faint);}
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);
+    background:#262b38;border:1px solid #333a4a;color:var(--text);padding:8px 16px;border-radius:99px;
+    font-size:13px;opacity:0;transition:.2s;pointer-events:none;z-index:30;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="row">
+      <a class="back" href="week.html">← 一周计划</a>
+      <span class="eyebrow">考研英语一 · 只认不拼</span>
+    </div>
+    <h1>高频词</h1>
+    <div class="sub" id="sub">— 词 · — 单元 · 每单元 60 个</div>
+    <div class="prog-bar"><i id="bar"></i></div>
+    <div class="prog-txt"><span id="pTxt">已过 0 单元</span><span id="rTxt">红标 0 词</span></div>
+  </header>
+
+  <div class="tip">
+    三秒判定：看英文，心里说中文。说得出口就过；说不出，立刻看释义、划红，别抄、别默写、别造句。
+    一个词停留不超过三秒，六十个词十几分钟过完，剩下时间留给回看。
+  </div>
+
+  <div class="today-box">
+    <div class="lb">今天的单元</div>
+    <div class="big" id="todayName">第 1 单元</div>
+    <div class="acts">
+      <button class="btn primary" id="goToday">开始过今天的词</button>
+      <button class="btn" id="goRed">只看红词复习</button>
+    </div>
+  </div>
+
+  <h2 class="ch">全部单元</h2>
+  <div class="units" id="units"></div>
+
+  <footer>
+    进度存在这台设备的浏览器里，换设备或清缓存会丢。
+    前 25 个单元正好是 25 天的主线，第 26 单元之后是加练，别为了它们挤掉今天的精读。
+  </footer>
+</div>
+
+<div class="quiz" id="quiz">
+  <div class="quiz-top">
+    <button class="btn" id="qClose">退出</button>
+    <span class="q-prog" id="qProg">1 / 60</span>
+  </div>
+  <div class="q-body" id="qBody">
+    <div class="q-word" id="qWord">—</div>
+    <div class="q-hint" id="qHint">说出意思 → 再点下面</div>
+    <div class="q-answer" id="qAns">
+      <div class="q-zh" id="qZh">—</div>
+      <div class="q-mark" id="qMark"></div>
+    </div>
+  </div>
+  <div class="q-acts" id="qActs">
+    <button class="btn green" data-v="ok">记得</button>
+    <button class="btn" data-v="half">模糊</button>
+    <button class="btn red" data-v="no">没见过</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="words/1.js"></script>
+<script src="words/2.js"></script>
+<script src="words/3.js"></script>
+<script src="words/4.js"></script>
+<script src="words/5.js"></script>
+<script>
+(function(){
+  "use strict";
+  var KEY = "kaoyan-words-v1";
+  var START = "2026-11-25";     // 第一套单词的那天
+  var PER = 60;
+
+  // 去重（同一个词只留第一次出现）
+  var seen = {}, LIST = [];
+  (window.WORDS || []).forEach(function(p){
+    if(!p || !p[0] || !p[1]) return;
+    var k = p[0];
+    if(seen[k]) return;
+    seen[k] = 1;
+    LIST.push([k, p[1]]);
+  });
+
+  var UNITS = [];
+  for(var i = 0; i < LIST.length; i += PER) UNITS.push(LIST.slice(i, i + PER));
+
+  var st = { red:{}, done:{}, ts:0 };
+  var quiz = { queue:[], idx:0, mode:"unit", unit:0, unitRight:0 };
+
+  function load(){
+    try{
+      var s = JSON.parse(localStorage.getItem(KEY) || "{}") || {};
+      st.red = s.red || {}; st.done = s.done || {}; st.ts = s.ts || 0;
+    }catch(e){}
+  }
+  function save(){
+    st.ts = Date.now();
+    try{ localStorage.setItem(KEY, JSON.stringify(st)); }catch(e){}
+  }
+  function redCount(unitIdx){
+    return UNITS[unitIdx].filter(function(p){ return st.red[p[0]]; }).length;
+  }
+  function totalRed(){ return Object.keys(st.red).length; }
+  function doneCount(){ return Object.keys(st.done).length; }
+
+  function dayIndex(){
+    var a = new Date(START + "T00:00:00").getTime();
+    var b = new Date(); b.setHours(0,0,0,0);
+    var d = Math.floor((b.getTime() - a) / 86400000) + 1;
+    return d;
+  }
+  function todayUnit(){
+    var d = dayIndex();
+    if(d < 1) d = 1;
+    return Math.min(d, Math.min(UNITS.length, 25));
+  }
+
+  function toast(msg){
+    var t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function(){ t.classList.remove("show"); }, 1500);
+  }
+
+  function renderHome(){
+    var d = dayIndex();
+    var tu = todayUnit();
+    document.getElementById("sub").textContent =
+      LIST.length + " 词 · " + UNITS.length + " 单元 · 每单元 " + PER + " 个";
+    document.getElementById("todayName").textContent =
+      "第 " + tu + " 单元" + (d > 25 ? "（主线已走完，接着加练）" : "");
+    var done = doneCount(), red = totalRed();
+    document.getElementById("pTxt").textContent = "已过 " + done + " / " + UNITS.length + " 单元";
+    document.getElementById("rTxt").textContent = "红标 " + red + " 词";
+    var pct = UNITS.length ? Math.min(100, Math.round(done / UNITS.length * 100)) : 0;
+    document.getElementById("bar").style.width = pct + "%";
+
+    var box = document.getElementById("units");
+    box.innerHTML = UNITS.map(function(u, i){
+      var isCur = (i + 1) === tu;
+      var cls = "unit" + (st.done[i+1] ? " done" : "") + (isCur ? " cur" : "");
+      var r = redCount(i);
+      return '<div class="' + cls + '" data-i="' + i + '">' +
+        '<div class="n">' + (i+1) + '</div>' +
+        '<div class="m">' + u.length + ' 词</div>' +
+        (r ? '<div class="r">红 ' + r + '</div>' : '') +
+      '</div>';
+    }).join("");
+    Array.prototype.forEach.call(box.querySelectorAll(".unit"), function(el){
+      el.addEventListener("click", function(){ startUnit(parseInt(el.getAttribute("data-i"),10)); });
+    });
+  }
+
+  function startUnit(i){
+    quiz.mode = "unit"; quiz.unit = i; quiz.unitRight = 0;
+    quiz.queue = UNITS[i].map(function(p){ return {w:p[0], z:p[1], red:!!st.red[p[0]]}; });
+    quiz.idx = 0;
+    openQuiz();
+  }
+  function startRed(){
+    var q = [];
+    UNITS.forEach(function(u, i){
+      u.forEach(function(p){ if(st.red[p[0]]) q.push({w:p[0], z:p[1], red:true, unit:i}); });
+    });
+    if(!q.length){ toast("还没有红词"); return; }
+    quiz.mode = "red"; quiz.queue = shuffle(q); quiz.idx = 0;
+    openQuiz();
+  }
+  function shuffle(a){
+    for(var i = a.length - 1; i > 0; i--){
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  var answered = false;
+
+  function openQuiz(){
+    document.getElementById("quiz").classList.add("show");
+    showCard();
+  }
+  function closeQuiz(){
+    document.getElementById("quiz").classList.remove("show");
+    renderHome();
+  }
+  function showCard(){
+    answered = false;
+    var q = quiz.queue[quiz.idx];
+    var word = document.getElementById("qWord");
+    var ans = document.getElementById("qAns");
+    var mark = document.getElementById("qMark");
+    ans.classList.remove("show");
+    mark.textContent = ""; mark.className = "q-mark";
+    document.getElementById("qHint").style.display = "block";
+    if(!q){
+      document.getElementById("qProg").textContent = quiz.queue.length + " / " + quiz.queue.length;
+      document.getElementById("qWord").textContent = "过完了";
+      document.getElementById("qHint").textContent = "点右上角退出，或直接关掉这一页";
+      ans.classList.add("show");
+      document.getElementById("qZh").textContent =
+        quiz.mode === "red"
+          ? "红词复习了一遍。剩下的等下一轮。"
+          : "这一单元过完了。今天剩下的时间给精读。";
+      return;
+    }
+    word.textContent = q.w;
+    document.getElementById("qZh").textContent = q.z;
+    document.getElementById("qProg").textContent = (quiz.idx + 1) + " / " + quiz.queue.length;
+  }
+  function judge(v){
+    if(answered) return;
+    var q = quiz.queue[quiz.idx];
+    if(!q) return;
+    answered = true;
+    document.getElementById("qHint").style.display = "none";
+    document.getElementById("qAns").classList.add("show");
+    var mark = document.getElementById("qMark");
+    if(v === "ok"){
+      if(q.red && st.red[q.w]){ delete st.red[q.w]; }
+      mark.className = "q-mark ok"; mark.textContent = "认识 → 过";
+      if(quiz.mode === "unit") quiz.unitRight++;
+    }else if(v === "half"){
+      st.red[q.w] = 1;
+      mark.className = "q-mark red"; mark.textContent = "模糊 → 划红，回头再看";
+    }else{
+      st.red[q.w] = 1;
+      mark.className = "q-mark red"; mark.textContent = "没见过 → 划红，别抄，记住词形";
+    }
+    save();
+    quiz.idx++;
+    var delay = (v === "ok") ? 320 : 1100;
+    setTimeout(function(){ if(!document.getElementById("quiz").classList.contains("show")) return; showCard(); }, delay);
+  }
+
+  // 事件
+  document.getElementById("goToday").addEventListener("click", function(){ startUnit(todayUnit() - 1); });
+  document.getElementById("goRed").addEventListener("click", startRed);
+  document.getElementById("qClose").addEventListener("click", function(){
+    if(quiz.mode === "unit" && quiz.idx >= quiz.queue.length && quiz.queue.length){
+      st.done[quiz.unit + 1] = Date.now();
+      save();
+    }
+    closeQuiz();
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("#qActs .btn"), function(b){
+    b.addEventListener("click", function(){ judge(b.getAttribute("data-v")); });
+  });
+  document.getElementById("qBody").addEventListener("click", function(){
+    if(answered){
+      if(document.getElementById("quiz").classList.contains("show")) showCard();
+    }
+  });
+  document.addEventListener("keydown", function(e){
+    if(!document.getElementById("quiz").classList.contains("show")) return;
+    if(e.key === "1") judge("ok");
+    else if(e.key === "2") judge("half");
+    else if(e.key === "3") judge("no");
+    else if(e.key === " " || e.key === "Enter"){ e.preventDefault(); if(answered) showCard(); }
+    else if(e.key === "Escape") closeQuiz();
+  });
+
+  load();
+  renderHome();
+})();
+</script>
+</body>
+</html>
