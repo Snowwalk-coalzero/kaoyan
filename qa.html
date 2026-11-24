@@ -226,6 +226,7 @@
   var FIG_CAPS = {
     rockSS:"图 岩石全过程应力—应变曲线", creep:"图 岩石典型蠕变曲线",
     rockmass:"图 岩体应力—应变曲线", hole:"图 圆孔在双向等压应力场中的应力分布",
+    dist:"图 圆孔周围应力重分布：σr 随 r 增大趋于 σ1",
     abut:"图 采场前方支承压力分区", pdl:"图 支架工作阻力与顶板下沉量（P-ΔL）",
     roadway:"图 区段平巷围岩变形", support:"图 支架—围岩相互作用",
     wilson:"图 威尔逊计算顶板压力的力学模型"
@@ -261,7 +262,7 @@
       html += '<div class="qa-arrow">▸</div></div>';
       html += '<div class="qa-body">';
       html += '<p class="qa-q">' + esc(q.q) + '</p>';
-      if(q.f) html += figHTML(q.f);
+      if(q.f){ var fs = [].concat(q.f); for(var k=0;k<fs.length;k++) html += figHTML(fs[k]); }
       html += '<ol>';
       for(var j=0;j<q.p.length;j++) html += '<li>' + esc(q.p[j]) + '</li>';
       html += '</ol>';
