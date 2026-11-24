@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1115">
+<title>25 天总表 · 11.25 → 12.19</title>
+<style>
+  :root{
+    --bg:#0f1115; --card:#171a21; --card2:#1d212b; --line:#262b38;
+    --text:#e9ecf3; --dim:#8a92a6; --faint:#5d6579;
+    --amber:#e0a458; --eng:#6aa6e0; --math:#5fb47a; --pro:#e06c6c; --pol:#e0a458; --cls:#5d6579;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+       font-size:15px;line-height:1.6;padding-bottom:env(safe-area-inset-bottom);}
+  .wrap{max-width:680px;margin:0 auto;padding:20px 16px 56px;}
+  h1,h2,h3{margin:0;font-weight:600;}
+  a{color:var(--eng);text-decoration:none;}
+  .muted{color:var(--dim);} .faint{color:var(--faint);} .small{font-size:12.5px;}
+
+  header{padding:6px 0 18px;border-bottom:1px solid var(--line);margin-bottom:18px;}
+  .eyebrow{font-size:12px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;}
+  .count{display:flex;align-items:baseline;gap:10px;margin:8px 0 2px;}
+  .count .big{font-size:56px;line-height:1;font-weight:700;letter-spacing:-.02em;}
+  .count .unit{font-size:16px;color:var(--dim);}
+  .count .sub{margin-left:auto;text-align:right;font-size:12.5px;color:var(--dim);line-height:1.45;}
+
+  .sec-title{font-size:11.5px;letter-spacing:.14em;color:var(--faint);margin:26px 0 10px;text-transform:uppercase;}
+
+  .skel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:6px 15px 12px;}
+  .row{display:flex;gap:10px;padding:7px 0;border-top:1px dashed var(--line);font-size:13.5px;}
+  .row:first-child{border-top:0;}
+  .row .t{flex:none;width:104px;color:var(--dim);font-variant-numeric:tabular-nums;font-size:12.5px;padding-top:2px;}
+  .row .c{flex:1;min-width:0;}
+  .row .n{font-size:12px;color:var(--faint);}
+  .k{font-size:11px;padding:0 7px;border-radius:99px;border:1px solid currentColor;opacity:.85;margin-right:6px;}
+  .k.pol{color:var(--pol);} .k.eng{color:var(--eng);} .k.math{color:var(--math);} .k.pro{color:var(--pro);} .k.cls{color:var(--cls);}
+
+  .phase{background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:12px;overflow:hidden;}
+  .ph-head{display:flex;align-items:center;gap:10px;padding:13px 15px;cursor:pointer;}
+  .ph-head .nm{font-weight:600;}
+  .ph-head .dt{font-size:12.5px;color:var(--faint);font-variant-numeric:tabular-nums;}
+  .ph-head .go{margin-left:auto;font-size:12px;color:var(--faint);}
+  .ph-body{display:none;padding:0 15px 14px;}
+  .phase.open .ph-body{display:block;}
+  .ph-body ul{margin:6px 0 10px;padding-left:18px;}
+  .ph-body li{font-size:13.5px;margin:5px 0;color:var(--dim);}
+  .ph-body li b{color:var(--text);font-weight:500;}
+  .tag{display:inline-block;font-size:11px;padding:0 7px;border-radius:99px;border:1px solid var(--line);color:var(--faint);margin-left:6px;}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 15px;margin-bottom:10px;font-size:13.5px;color:var(--dim);}
+  .card b{color:var(--text);font-weight:500;}
+  .card ol{margin:6px 0 0;padding-left:18px;}
+  .card li{margin:5px 0;}
+
+  .target{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 0;}
+  .chip{font-size:12px;padding:3px 9px;border-radius:99px;background:var(--card2);border:1px solid var(--line);color:var(--dim);}
+  .chip b{color:var(--text);font-weight:600;}
+
+  .warn{border-color:#4a3a22;background:#1e1a12;}
+  footer{margin-top:26px;font-size:12px;color:var(--faint);text-align:center;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">2027 硕士统考 · 英语一 · 825 矿山压力与岩层控制</div>
+    <div class="count">
+      <span class="big" id="days">25</span><span class="unit">天</span>
+      <span class="sub" id="dates">11.25 → 12.19</span>
+    </div>
+    <div class="small faint">初试 12 月 19、20 两天。这张表按「英语提到和第二主科同等位置」重排过。</div>
+  </header>
+
+  <div class="sec-title">现在的位置</div>
+  <div class="card">
+    <b>英语一：阅读一篇错 3 个，四级没过。</b>这不是“基础差”四个字能概括的事——阅读五题错三，说明句子还没读通，不是选项技巧的问题。所以这 25 天里不碰语法书、不做 1500 篇，只做三件事：<b>单词、精读、作文</b>。
+    <div class="target">
+      <span class="chip">目标 <b>50–56</b></span>
+      <span class="chip">阅读 <b>12/20 题</b></span>
+      <span class="chip">作文 <b>18</b></span>
+      <span class="chip">新题型 <b>6</b></span>
+      <span class="chip">翻译 <b>5</b></span>
+      <span class="chip">完型 <b>3</b></span>
+    </div>
+    <div class="faint small" style="margin-top:8px">阅读从“错 3”到“错 2”，就是 8 分；作文从乱写到有模板，就是 5 分。这两块比数学大题容易拿。</div>
+  </div>
+
+  <div class="sec-title">每天的时间骨架</div>
+  <div class="skel">
+    <div class="row"><div class="t">06:50–07:20</div><div class="c"><span class="k eng">英</span>单词 30′<div class="n">只背高频 1500 里的词，一天 60 个；三个时段各 10′ 过一遍，别一次背完</div></div></div>
+    <div class="row"><div class="t">07:20–08:20</div><div class="c"><span class="k pol">政</span>政治 60′<div class="n">肖八一套选择（隔天）／错题回看（隔天）</div></div></div>
+    <div class="row"><div class="t">08:30–11:30</div><div class="c"><span class="k math">数</span>数学 180′<div class="n">真题限时；做不完就是做不完，不减时</div></div></div>
+    <div class="row"><div class="t">13:30–15:00</div><div class="c"><span class="k pro">825</span>论述 90′<div class="n">手写 2 题，各 25′，写完留 40′ 对书补漏</div></div></div>
+    <div class="row"><div class="t">15:15–16:15</div><div class="c"><span class="k eng">英</span>精读 60′<div class="n">真题阅读 1 篇，三遍法（见下）</div></div></div>
+    <div class="row"><div class="t">16:30–17:30</div><div class="c"><span class="k math">数</span>错题 60′<div class="n">当天做错的题重做，不抄步骤</div></div></div>
+    <div class="row"><div class="t">19:30–20:30</div><div class="c"><span class="k eng">英</span>英语第二段 60′<div class="n">长难句翻译 1 句（20′）＋ 作文／新题型（40′，隔天轮换）</div></div></div>
+    <div class="row"><div class="t">20:40–21:30</div><div class="c"><span class="k pro">825</span>名词 50′<div class="n">口述 20 条，只看题干不看答案</div></div></div>
+    <div class="row"><div class="t">21:30–21:45</div><div class="c"><span class="k cls">复</span>三栏错题本 15′<div class="n">算错 / 不会 / 看错题干；每天只加不减</div></div></div>
+    <div class="row"><div class="t">合计</div><div class="c faint">英语 2.5h · 数学 4h · 825 约 2.3h · 政治 1h —— 有课的日子按实际切，先保单词和精读。</div></div>
+  </div>
+
+  <div class="sec-title">三个阶段</div>
+
+  <div class="phase open">
+    <div class="ph-head"><span class="nm">一 · 把英语接进日常</span><span class="dt">11.25 – 12.03（9 天）</span><span class="go">收起</span></div>
+    <div class="ph-body">
+      <ul>
+        <li><b>英语</b>：单词每天 60 词（高频 1500 第一轮 9 天走完）；精读真题阅读每天 1 篇，<b>只做 2005–2012 年的</b>，老题句子长，适合练读通；长难句笔译每天 1 句。</li>
+        <li><b>精读三遍法</b>：① 18′ 限时做完，不查词；② 30′ 对答案 → 查生词 → 把错题那一句原文抄下来自己译一遍；③ 隔天早读时回看这篇的错题，只看“我为什么选错”。</li>
+        <li><b>数学</b>：09–16 年真题，两天一套限时 170′，中间那天做错题。<span class="tag">别追新题量</span></li>
+        <li><b>825</b>：论述 26 题第一轮手写到第 14 题；名词第 1–4 章滚动口述。</li>
+        <li><b>政治</b>：肖八第 5–8 套做完，错题当天分类。</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="ph-head"><span class="nm">二 · 作文和提分</span><span class="dt">12.04 – 12.13（10 天）</span><span class="go">展开</span></div>
+    <div class="ph-body">
+      <ul>
+        <li><b>英语</b>：单词只滚错词本（20′）；精读换成 <b>2013–2019 真题阅读</b>，每天 1 篇；<b>作文隔天一篇</b>——小作文 5 类各写一遍（书信／通知／告示／推荐／建议），大作文用 3 个万能框架（图画描述 → 原因 2 条 → 建议 1 条），每篇必须手写、限时 25′；新题型隔天 1 篇。</li>
+        <li><b>数学</b>：17–21 年真题限时；错题按题型成组（极限／中值定理／线代特征值…），不再按套做。</li>
+        <li><b>825</b>：论述 26 题二轮，只写提纲＋关键图，控制在 15′ 一题；名词全册滚动，每天 30 条。</li>
+        <li><b>政治</b>：大题框架 12 个背熟；肖四到了立刻切肖四。</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="ph-head"><span class="nm">三 · 收口</span><span class="dt">12.14 – 12.18（5 天）</span><span class="go">展开</span></div>
+    <div class="ph-body">
+      <ul>
+        <li><b>英语</b>：作文默写（大小各 2 篇，掐 25′）；真题阅读每天 1 篇保持手感；单词只过错词本。</li>
+        <li><b>数学</b>：不碰新题。错题本第二轮回看 + 公式手写默写。</li>
+        <li><b>825</b>：九张图徒手默画两遍；名词查漏；论述只背提纲。</li>
+        <li><b>政治</b>：肖四大题背 + 时政 20 页。</li>
+        <li><b>12.17 起</b>：22:30 睡，早上按考试节奏醒。18 号下午只看考场和证件。</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="sec-title">三条不让位的</div>
+  <div class="card warn">
+    <ol>
+      <li>单词每天都要有，哪怕只有 10′。断一天，阅读的进步就会往回收。</li>
+      <li>英语精读不是刷题：一天 1 篇读透，比 4 篇对完答案强。做错的题要能说出“我为什么选错”。</li>
+      <li>825 论述手写不能停。写不完就是最大的风险，笔速只能靠写练。</li>
+    </ol>
+  </div>
+
+  <div class="sec-title">其他入口</div>
+  <div class="card">
+    <a href="week.html">一周课表（含勾选）</a> ·
+    <a href="terms.html">名词自测</a> ·
+    <a href="qa.html">论述 26 题</a> ·
+    <a href="pro.html">825 资料</a> ·
+    <a href="index.html">首页</a>
+  </div>
+
+  <footer>每天的具体安排看首页的「今天」。这张表定框架，不动摇。</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var EXAM = new Date(2026, 11, 19);
+  var now = new Date();
+  var d0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  var days = Math.round((EXAM - d0) / 86400000);
+  if (days > 0) document.getElementById("days").textContent = days;
+
+  var heads = document.querySelectorAll(".ph-head");
+  for (var i = 0; i < heads.length; i++){
+    heads[i].addEventListener("click", function(){
+      var p = this.parentNode;
+      p.classList.toggle("open");
+      this.querySelector(".go").textContent = p.classList.contains("open") ? "收起" : "展开";
+    });
+  }
+})();
+</script>
+</body>
+</html>
