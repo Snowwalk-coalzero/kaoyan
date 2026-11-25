@@ -1,7 +1,7 @@
 /* 一周计划：日期自己算，内容按阶段 + 实际进度生成
-   - 课表在 CLASS_PLAN 里改（一行一处），改完推一次就行，以后不用再动
+   - 课表按“周”写在 CLASS_WEEKS 里（第 12–15 周，来源：教务处课表截图，2026-11-25）
    - 今天这一块：如果 today.js 里的日期就是今天，用它的手写版本；否则用生成版
-   - 日型：周六整卷日 / 周日政治英语日 / 无课日用固定模板 / 有课日用 packer 塞短块 */
+   - 日型：周六整卷日 / 周日政治英语日 / 无课日用固定模板 / 有课日按空格子塞短块 */
 (function () {
   "use strict";
 
@@ -15,25 +15,34 @@
   ];
   var TOTAL_MATH = 14, TOTAL_POL = 8;
 
-  // ---- 课表（改这里）----
-  // wd: 0=周日 1=周一 … 6=周六；from/until 是生效区间（含），不写 from 就从现在起
-  // 11.25 周三：满课，上午 + 下午 + 晚上三节；12.02 起周三只有上午 + 下午
-  var CLASS_PLAN = [
-    { wd: 3, from: "2026-11-25", until: "2026-11-25", blocks: [
-      ["10:10", "12:00", "课：CAD"],
-      ["16:10", "18:00", "课：实验"],
-      ["19:00", "21:00", "课：CAD（晚）"]
+  // ---- 课表（按周写，改这里）----
+  // wd: 0=周日 1=周一 … 6=周六。灰字「非本周」的课没排进来。
+  var CLASS_WEEKS = [
+    { from: "2026-11-23", to: "2026-11-29", blocks: [
+      [1, "14:00", "15:50", "课：绿色开采技术"],
+      [2, "10:10", "12:00", "课：智能采掘系统"],
+      [3, "10:10", "12:00", "课：矿山开采设计 CAD"],
+      [3, "16:10", "18:00", "课：矿井开拓方式（平面图）"],
+      [3, "19:00", "20:50", "课：矿井开拓方式（剖面图）"],
+      [4, "08:00", "09:50", "课：矿井通风与安全 C"]
     ]},
-    { wd: 3, from: "2026-11-26", until: "2026-12-02", blocks: [
-      ["10:10", "12:00", "课：CAD"],
-      ["16:10", "18:00", "课：实验"]
+    { from: "2026-11-30", to: "2026-12-06", blocks: [
+      [1, "14:00", "15:50", "课：绿色开采技术"],
+      [2, "10:10", "12:00", "课：智能采掘系统"],
+      [3, "10:10", "12:00", "课：矿山开采设计 CAD"],
+      [3, "16:10", "18:00", "课：矿井通风系统及通风网络"]
     ]},
-    { wd: 4, until: "2026-11-26", blocks: [
-      ["08:30", "11:30", "课：按课表（周四，这周最后一周）"]
+    { from: "2026-12-07", to: "2026-12-13", blocks: [
+      [1, "14:00", "15:50", "课：绿色开采技术"],
+      [2, "10:10", "12:00", "课：智能采掘系统"]
+    ]},
+    { from: "2026-12-14", to: "2026-12-20", blocks: [
+      [1, "14:00", "15:50", "课：绿色开采技术"],
+      [2, "10:10", "12:00", "课：智能采掘系统"]
     ]}
   ];
 
-  // ---- 有课日的格子（packer 用）----
+  // ---- 一天的骨架格子（有课日按课切开，剩下的碎片 ≥20′ 才用）----
   var SLOTS = [
     ["06:50", "07:20"], ["07:25", "08:25"], ["08:30", "09:55"], ["10:10", "11:40"],
     ["13:10", "14:40"], ["14:50", "16:00"], ["16:10", "18:00"], ["19:00", "20:10"],
@@ -84,25 +93,17 @@
   function toMin(t) { var a = t.split(":"); return (+a[0]) * 60 + (+a[1]); }
   function hhmm(v) { return pad(Math.floor(v / 60)) + ":" + pad(v % 60); }
 
-  // 这一天的课（相邻或重叠的课合并成一块）
+  // 这一天的课
   function classesOn(d) {
-    var s = iso(d), out = [];
-    CLASS_PLAN.forEach(function (c) {
-      if (c.wd !== d.getDay()) return;
-      if (c.from && s < c.from) return;
-      if (c.until && s > c.until) return;
-      c.blocks.forEach(function (b) { out.push({ s: b[0], e: b[1], t: b[2] }); });
+    var s = iso(d), wd = d.getDay(), out = [];
+    CLASS_WEEKS.forEach(function (w) {
+      if (s < w.from || s > w.to) return;
+      w.blocks.forEach(function (b) {
+        if (b[0] === wd) out.push({ s: b[1], e: b[2], t: b[3] });
+      });
     });
     out.sort(function (a, b) { return toMin(a.s) - toMin(b.s); });
-    var merged = [];
-    out.forEach(function (c) {
-      var last = merged[merged.length - 1];
-      if (last && toMin(c.s) <= toMin(last.e)) {
-        if (toMin(c.e) > toMin(last.e)) last.e = c.e;
-        last.t = last.t.replace(/（晚）$/, "");
-      } else merged.push({ s: c.s, e: c.e, t: c.t });
-    });
-    return merged;
+    return out;
   }
 
   // ---- 生成某一天 ----
@@ -110,7 +111,6 @@
     var n = nOf(d), ph = phaseOf(d), wd = d.getDay(), cls = classesOn(d);
     var tight = cls.length > 0;
 
-    // 进度（跟着 mathDone / polDone 走）
     var doneYr = 2009 + st.mathDone;                      // 做完 14 年卷 → 2015
     var off = ph === 0 ? Math.floor((n - 1) / 2) : ph === 1 ? Math.min(4 + (n - 10), 7) : 7;
     var year = Math.min(2022, doneYr + off);
@@ -163,7 +163,7 @@
         ph === 2 ? "写完对模板改三处" : (n % 2 ? "写完对着范文找三处不一样" : "七选五 30′，骨架 30′"));
       mk("20:40", "21:30", "pro", "825 口述：名词 20 条", nounNote);
       mk("21:35", "21:50", "eng", "三栏错题本 15′", "英语一块、数学一块，只写错因一行");
-    } else {                                         // 有课日：packer 塞短块
+    } else {                                         // 有课日：按课切开格子，塞短块
       var tasks = [];
       function T(k, t, note, dur) { tasks.push({ k: k, t: t, note: note, dur: dur }); }
       T("eng", wordT, wordN, 30);
@@ -176,19 +176,32 @@
       T("pro", "825 口述：名词 20 条", nounNote, 25);
       T("eng", "三栏错题本 15′", "英语一块、数学一块，只写错因一行", 15);
 
-      var grid = SLOTS.map(function (sl) {
-        var c = null;
-        cls.forEach(function (k) { if (toMin(sl[0]) < toMin(k.e) && toMin(sl[1]) > toMin(k.s)) c = k; });
-        return { s: sl[0], e: sl[1], cls: c, used: false };
+      // 骨架格子减掉课，切出来的碎片 ≥20′ 才用
+      var segs = [];
+      SLOTS.forEach(function (sl) { segs.push([toMin(sl[0]), toMin(sl[1])]); });
+      cls.forEach(function (c) {
+        var cs = toMin(c.s), ce = toMin(c.e), next = [];
+        segs.forEach(function (g) {
+          if (ce <= g[0] || cs >= g[1]) { next.push(g); return; }
+          if (cs > g[0]) next.push([g[0], cs]);
+          if (ce < g[1]) next.push([ce, g[1]]);
+        });
+        segs = next;
       });
+      var grid = [];
+      segs.forEach(function (g) {
+        if (g[1] - g[0] >= 20) grid.push({ s: hhmm(g[0]), e: hhmm(g[1]), used: false });
+      });
+      grid.sort(function (a, b) { return toMin(a.s) - toMin(b.s); });
+
       var cursor = 0;
       tasks.forEach(function (task) {
         var i = cursor, hit = -1;
         while (i < grid.length) {
-          if (grid[i].cls || grid[i].used) { i++; continue; }
+          if (grid[i].used) { i++; continue; }
           var j = i, span = 0, ok = true;
           while (j < grid.length && span < task.dur) {
-            if (grid[j].cls || grid[j].used) { ok = false; break; }
+            if (grid[j].used) { ok = false; break; }
             if (j > i && toMin(grid[j].s) !== toMin(grid[j - 1].e)) { ok = false; break; }
             span += toMin(grid[j].e) - toMin(grid[j].s);
             j++;
@@ -201,9 +214,8 @@
         for (var k = i; k < hit; k++) grid[k].used = true;
         var startM = toMin(grid[ks].s), endM = Math.min(toMin(grid[hit].e), startM + task.dur);
         b.push({ s: grid[ks].s, e: hhmm(endM), k: task.k, t: task.t, note: task.note });
-        // 格子没用完：把剩下的时间留成新格子，后面还能接着塞
         if (endM < toMin(grid[hit].e)) {
-          grid[hit] = { s: hhmm(endM), e: grid[hit].e, cls: null, used: false };
+          grid[hit] = { s: hhmm(endM), e: grid[hit].e, used: false };
           cursor = hit;
         } else {
           grid[hit].used = true;
@@ -213,10 +225,7 @@
     }
 
     // 课插进来
-    var seen = {};
     cls.forEach(function (c) {
-      var key = c.s + "-" + c.e + c.t;
-      if (seen[key]) return; seen[key] = 1;
       b.push({ s: c.s, e: c.e, k: "cls", t: c.t, note: "" });
     });
     b.sort(function (x, y) { return toMin(x.s) - toMin(y.s); });
@@ -258,7 +267,7 @@
     if (info) info.innerHTML = "2026.12.19 <span class='faint'>· 周六</span>";
     var ph = PHASES[phaseOf(today)];
     var sub = document.getElementById("sub");
-    if (sub) sub.textContent = ph.nm + " · " + md(today) + "–" + md(addDays(today, 6)) + " · 有课的排课，其余排活";
+    if (sub) sub.textContent = ph.nm + " · " + md(today) + "–" + md(addDays(today, 6)) + " · 课按教务处课表，空档排活";
     var pct = Math.min(100, Math.round(st.mathDone * 100 / TOTAL_MATH));
     var mb = document.getElementById("mathBar"), mp = document.getElementById("mathProg");
     if (mb) mb.style.width = pct + "%";
@@ -280,7 +289,7 @@
       items = T.items; note = T.note || "";
     } else {
       items = DAYS[0].blocks.map(function (b) { return { s: b.s, e: b.e, k: b.k, t: b.t, note: b.note, done: !!st.checks[iso(today) + "-" + b.s] }; });
-      note = DAYS[0].dropped ? "（有 " + DAYS[0].dropped + " 项没塞进今天，明天接着做）" : "";
+      note = DAYS[0].dropped ? "（今天有 " + DAYS[0].dropped + " 项没排进去，明早接着做）" : "";
     }
     box.style.display = "";
     box.innerHTML =
