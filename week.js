@@ -16,12 +16,17 @@
   var TOTAL_MATH = 14, TOTAL_POL = 8;
 
   // ---- 课表（改这里）----
-  // wd: 0=周日 1=周一 … 6=周六；until 是最后一节课的日期（含）
+  // wd: 0=周日 1=周一 … 6=周六；from/until 是生效区间（含），不写 from 就从现在起
+  // 11.25 周三：满课，上午 + 下午 + 晚上三节；12.02 起周三只有上午 + 下午
   var CLASS_PLAN = [
-    { wd: 3, until: "2026-12-02", blocks: [
+    { wd: 3, from: "2026-11-25", until: "2026-11-25", blocks: [
       ["10:10", "12:00", "课：CAD"],
       ["16:10", "18:00", "课：实验"],
       ["19:00", "21:00", "课：CAD（晚）"]
+    ]},
+    { wd: 3, from: "2026-11-26", until: "2026-12-02", blocks: [
+      ["10:10", "12:00", "课：CAD"],
+      ["16:10", "18:00", "课：实验"]
     ]},
     { wd: 4, until: "2026-11-26", blocks: [
       ["08:30", "11:30", "课：按课表（周四，这周最后一周）"]
@@ -84,7 +89,8 @@
     var s = iso(d), out = [];
     CLASS_PLAN.forEach(function (c) {
       if (c.wd !== d.getDay()) return;
-      if (s > c.until) return;
+      if (c.from && s < c.from) return;
+      if (c.until && s > c.until) return;
       c.blocks.forEach(function (b) { out.push({ s: b[0], e: b[1], t: b[2] }); });
     });
     out.sort(function (a, b) { return toMin(a.s) - toMin(b.s); });
