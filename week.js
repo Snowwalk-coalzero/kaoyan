@@ -11,7 +11,7 @@
     { nm: "强化期", from: "2026-12-04", to: "2026-12-13" },   // n 10..19
     { nm: "冲刺期", from: "2026-12-14", to: "2026-12-18" }    // n 20..24
   ];
-  var TOTAL_MATH = 18, TOTAL_POL = 8;
+  var TOTAL_MATH = 14, TOTAL_POL = 8;
 
   var MILES = [
     { nm: "825", items: [
@@ -56,24 +56,28 @@
   // ---- 生成某一天 ----
   function buildDay(d) {
     var n = nOf(d), ph = phaseOf(d), wd = d.getDay(), b = [];
-    // 数学：14 年卷已做完，从 15 年起。基础期两天一套，强化期一天一套，冲刺期回看
+    // 数学：09–14 已做完（六套），从 15 年起。基础期两天一套，强化期一天一套，冲刺期回看
     var MATH_YEARS = [2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022];
     var mIdx = ph === 0 ? Math.min(3, Math.floor((n - 1) / 2)) : ph === 1 ? Math.min(7, 4 + (n - 10)) : 7;
     var year = MATH_YEARS[mIdx];
-    // 精读用 2005 起的旧卷练句子，跟你整卷模考（16/18 已做）的年份错开
+    // 精读用 2005 起的旧卷练句子，跟你整卷模考（18 已做）的年份错开
     var paper = ph === 0 ? 2005 + Math.floor((n - 1) / 4) : ph === 1 ? 2012 + Math.floor((n - 10) / 4) : 2019;
     var tno = ((n - 1) % 4) + 1;
-    // 政治：肖八第 4 套已做完，从第 5 套起，隔天一套
+    // 政治：肖八第 4 套昨天刚做完，从第 5 套起，隔天一套
     var polSet = Math.min(8, 5 + Math.floor((n - 1) / 2));
-    var polT = ph === 2 ? "政治：肖四选择 1 套 + 错题回看" : "政治：背考点 30′ + 肖八第 " + polSet + " 套（限时 50′）";
-    var spk1 = Math.min(26, ((n - 1) * 2) % 26 + 1), spk2 = Math.min(26, spk1 + 1);
+    var polT = ph === 2 ? "政治：肖四选择 1 套 + 错题回看" : (n >= 10 ? "政治：肖四选择 1 套 + 肖八错题回看" : "政治：背考点 30′ + 肖八第 " + polSet + " 套（限时 50′）");
+    // 825：论述手写到第 4 题，名词过到第一章第 20 条
+    var spk1 = Math.min(25, 5 + (n - 1) * 2), spk2 = Math.min(26, spk1 + 1);
+    var nounNote = n <= 2 ? "第一章还剩 40 条，两天收完再进第二章" : "按章往下，只说，别翻答案";
     var unit = Math.min(25, Math.max(1, n));
+    // 周三的课（上午 CAD + 下午实验）到 12 月 2 日为止，且没有晚课
+    var wedClass = wd === 3 && d.getTime() <= new Date(2026, 11, 2, 23, 59).getTime();
 
     function word(t, note) { b.push({ s: "06:50", e: "07:20", k: "eng", t: t || "英语：单词 30′", note: note }); }
     function pol(t, note) { b.push({ s: "07:25", e: "08:25", k: "pol", t: t || polT, note: note || "做完当天对答案，错题按马原/毛中特/史纲/时政分" }); }
     function words(note) { word("英语：单词 30′", note || ("words.html 第 " + unit + " 单元，60 个")); }
 
-    if (wd === 3) {                    // 周三：实验日，数学切半套
+    if (wedClass) {                    // 周三：有课（上午 CAD + 下午实验），没有晚课
       words();
       pol("政治：背考点 30′ + 肖八错题 30′", "史纲画时间轴，比背字快");
       b.push({ s: "08:30", e: "09:55", k: "math", t: "数学：" + year + " 年卷半套（选择填空 + 前两大题）", note: "限时 85′，实验日只能切着做，别拖到晚上" });
@@ -81,9 +85,9 @@
       b.push({ s: "13:10", e: "14:10", k: "math", t: "数学：半套剩下的大题 + 当堂记错题", note: "三类：算错 / 不会 / 看错题干" });
       b.push({ s: "14:20", e: "15:20", k: "pro", t: "825 手写：论述 1 题 + 对图", note: "第 " + spk1 + " 题，25′ 写完再对着图查漏项" });
       b.push({ s: "16:10", e: "18:00", k: "cls", t: "课：实验（按课表）" });
-      b.push({ s: "19:00", e: "20:50", k: "cls", t: "课：井巷断面图设计" });
-      b.push({ s: "21:00", e: "22:00", k: "eng", t: "英语：精读 1 篇（" + paper + " Text " + tno + "）", note: "18′ 做完 + 30′ 查词译文；课最多的一天，宁可短也要做一篇" });
-      b.push({ s: "22:10", e: "22:40", k: "pro", t: "825 口述：名词 10 条", note: "今天只保这个" });
+      b.push({ s: "19:00", e: "19:50", k: "pro", t: "825 口述：名词 20 条", note: nounNote });
+      b.push({ s: "20:00", e: "21:00", k: "eng", t: "英语：精读 1 篇（" + paper + " Text " + tno + "）", note: "18′ 做完 + 30′ 查词译文；课最多的一天，宁可短也要做一篇" });
+      b.push({ s: "21:10", e: "21:40", k: "eng", t: "英语：红词回看 20′ + 三栏本 10′", note: "只回看，不碰新词" });
     } else if (wd === 6) {             // 周六：整卷
       words();
       b.push({ s: "08:30", e: "11:30", k: "math", t: "数学：整卷模考", note: ph === 2 ? "2022 卷，按考试时间，不出去、不查书" : year + " 年卷，按考试时间" });
@@ -111,7 +115,7 @@
       b.push({ s: "15:15", e: "16:15", k: "eng", t: ph === 2 ? "英语：大作文默写 1 篇（限时 25′）" : "英语：精读 1 篇（" + paper + " Text " + tno + "）", note: ph === 2 ? "写完对着自己的三处模板改，不重写整篇" : "三遍法：18′ 做 → 查词译句 → 明天回看错因" });
       b.push({ s: "16:30", e: "17:30", k: "math", t: "数学：上午卷错题 + 归类" });
       b.push({ s: "19:30", e: "20:30", k: "eng", t: n % 2 ? "英语：长难句 20′ + 小作文 1 篇（手写 25′）" : "英语：新题型 1 篇 + 作文框架默写", note: n % 2 ? "写完对着范文找三处不一样的地方" : "七选五 30′，大作文三段骨架 30′" });
-      b.push({ s: "20:40", e: "21:30", k: "pro", t: "825 口述：名词 20 条", note: "只说，别翻答案" });
+      b.push({ s: "20:40", e: "21:30", k: "pro", t: "825 口述：名词 20 条", note: nounNote });
       b.push({ s: "21:35", e: "21:50", k: "eng", t: "三栏错题本 15′", note: "英语一块、数学一块，只写错因一行" });
     }
     return { d: d, n: n, ph: ph, name: weekName(d), blocks: b };
@@ -121,8 +125,8 @@
   function load() {
     try {
       var s = JSON.parse(localStorage.getItem(KEY) || "{}") || {};
-      return { checks: s.checks || {}, mathDone: typeof s.mathDone === "number" ? s.mathDone : 10, polDone: typeof s.polDone === "number" ? s.polDone : 4, miles: s.miles || {}, ts: s.ts || 0 };
-    } catch (e) { return { checks: {}, mathDone: 10, polDone: 4, miles: {}, ts: 0 }; }
+      return { checks: s.checks || {}, mathDone: typeof s.mathDone === "number" ? s.mathDone : 6, polDone: typeof s.polDone === "number" ? s.polDone : 4, miles: s.miles || {}, ts: s.ts || 0 };
+    } catch (e) { return { checks: {}, mathDone: 6, polDone: 4, miles: {}, ts: 0 }; }
   }
   function save() {
     st.ts = Date.now();
@@ -158,7 +162,7 @@
     var pct = Math.min(100, Math.round(st.mathDone * 100 / TOTAL_MATH));
     var mb = document.getElementById("mathBar"), mp = document.getElementById("mathProg");
     if (mb) mb.style.width = pct + "%";
-    if (mp) mp.textContent = st.mathDone > 0 ? ("做到 " + (2005 + st.mathDone - 1) + " 年（共 " + TOTAL_MATH + " 套）") : ("0 / " + TOTAL_MATH);
+    if (mp) mp.textContent = st.mathDone > 0 ? ("做到 " + (2008 + st.mathDone) + " 年（09 起共 " + TOTAL_MATH + " 套）") : ("0 / " + TOTAL_MATH);
     var pp = Math.min(100, Math.round(st.polDone * 100 / TOTAL_POL));
     var pb = document.getElementById("polBar"), pp2 = document.getElementById("polProg");
     if (pb) pb.style.width = pp + "%";
