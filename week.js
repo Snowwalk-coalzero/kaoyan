@@ -1,5 +1,7 @@
-/* 一周计划：日期自己算，内容按阶段生成，不再需要每晚手工更新
-   今天这一块：如果 today.js 里的日期就是今天，用它的手写版本；否则用生成的版本 */
+/* 一周计划：日期自己算，内容按阶段 + 实际进度生成
+   - 课表在 CLASS_PLAN 里改（一行一处），改完推一次就行，以后不用再动
+   - 今天这一块：如果 today.js 里的日期就是今天，用它的手写版本；否则用生成版
+   - 日型：周六整卷日 / 周日政治英语日 / 无课日用固定模板 / 有课日用 packer 塞短块 */
 (function () {
   "use strict";
 
@@ -13,6 +15,26 @@
   ];
   var TOTAL_MATH = 14, TOTAL_POL = 8;
 
+  // ---- 课表（改这里）----
+  // wd: 0=周日 1=周一 … 6=周六；until 是最后一节课的日期（含）
+  var CLASS_PLAN = [
+    { wd: 3, until: "2026-12-02", blocks: [
+      ["10:10", "12:00", "课：CAD"],
+      ["16:10", "18:00", "课：实验"],
+      ["19:00", "21:00", "课：CAD（晚）"]
+    ]},
+    { wd: 4, until: "2026-11-26", blocks: [
+      ["08:30", "11:30", "课：按课表（周四，这周最后一周）"]
+    ]}
+  ];
+
+  // ---- 有课日的格子（packer 用）----
+  var SLOTS = [
+    ["06:50", "07:20"], ["07:25", "08:25"], ["08:30", "09:55"], ["10:10", "11:40"],
+    ["13:10", "14:40"], ["14:50", "16:00"], ["16:10", "18:00"], ["19:00", "20:10"],
+    ["20:20", "21:20"], ["21:30", "21:50"]
+  ];
+
   var MILES = [
     { nm: "825", items: [
       { id: "p1", tx: '第 1–6 章名词过完一轮（<a href="terms.html">去自测</a>）' },
@@ -21,20 +43,22 @@
       { id: "p4", tx: '第 7–9 章名词补完（冲击地压、岩层移动、研究方法）' }
     ]},
     { nm: "数学", items: [
-      { id: "m1", tx: '错题本回看第 1 轮' },
-      { id: "m2", tx: '错题本回看第 2 轮' },
-      { id: "m3", tx: '公式手写默写一遍' }
+      { id: "m1", tx: '15–22 年八套走完' },
+      { id: "m2", tx: '错题本回看第 1 轮' },
+      { id: "m3", tx: '错题本回看第 2 轮' },
+      { id: "m4", tx: '公式手写默写一遍' }
     ]},
     { nm: "政治", items: [
-      { id: "g1", tx: '肖1000 马原错题刷一遍' },
-      { id: "g2", tx: '肖1000 史纲错题刷一遍' },
-      { id: "g3", tx: '肖八选择题 8 套做完' },
-      { id: "g4", tx: '大题框架 12 个背熟' }
+      { id: "g1", tx: '肖八第 5–8 套选择做完' },
+      { id: "g2", tx: '肖四选择 4 套' },
+      { id: "g3", tx: '肖四大题框架 12 个背熟' },
+      { id: "g4", tx: '肖八错题按四类归档' }
     ]},
     { nm: "英语", items: [
-      { id: "e1", tx: '阅读补完 15 篇' },
-      { id: "e2", tx: '大小作文各写 3 篇' },
-      { id: "e3", tx: '高频单词过 3 遍' }
+      { id: "e1", tx: '精读 12 篇（句子为主）' },
+      { id: "e2", tx: '小作文 5 类模板手写' },
+      { id: "e3", tx: '大作文三段骨架 + 3 篇成文' },
+      { id: "e4", tx: '高频词 2147 过 3 遍' }
     ]}
   ];
 
@@ -52,73 +76,146 @@
     return s < PHASES[0].from ? 0 : 2;
   }
   function weekName(d) { return ["周日", "周一", "周二", "周三", "周四", "周五", "周六"][d.getDay()]; }
+  function toMin(t) { var a = t.split(":"); return (+a[0]) * 60 + (+a[1]); }
+  function hhmm(v) { return pad(Math.floor(v / 60)) + ":" + pad(v % 60); }
+
+  // 这一天的课（相邻或重叠的课合并成一块）
+  function classesOn(d) {
+    var s = iso(d), out = [];
+    CLASS_PLAN.forEach(function (c) {
+      if (c.wd !== d.getDay()) return;
+      if (s > c.until) return;
+      c.blocks.forEach(function (b) { out.push({ s: b[0], e: b[1], t: b[2] }); });
+    });
+    out.sort(function (a, b) { return toMin(a.s) - toMin(b.s); });
+    var merged = [];
+    out.forEach(function (c) {
+      var last = merged[merged.length - 1];
+      if (last && toMin(c.s) <= toMin(last.e)) {
+        if (toMin(c.e) > toMin(last.e)) last.e = c.e;
+        last.t = last.t.replace(/（晚）$/, "");
+      } else merged.push({ s: c.s, e: c.e, t: c.t });
+    });
+    return merged;
+  }
 
   // ---- 生成某一天 ----
   function buildDay(d) {
-    var n = nOf(d), ph = phaseOf(d), wd = d.getDay(), b = [];
-    // 数学：09–14 已做完（六套），从 15 年起。基础期两天一套，强化期一天一套，冲刺期回看
-    var MATH_YEARS = [2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022];
-    var mIdx = ph === 0 ? Math.min(3, Math.floor((n - 1) / 2)) : ph === 1 ? Math.min(7, 4 + (n - 10)) : 7;
-    var year = MATH_YEARS[mIdx];
-    // 精读用 2005 起的旧卷练句子，跟你整卷模考（18 已做）的年份错开
+    var n = nOf(d), ph = phaseOf(d), wd = d.getDay(), cls = classesOn(d);
+    var tight = cls.length > 0;
+
+    // 进度（跟着 mathDone / polDone 走）
+    var doneYr = 2009 + st.mathDone;                      // 做完 14 年卷 → 2015
+    var off = ph === 0 ? Math.floor((n - 1) / 2) : ph === 1 ? Math.min(4 + (n - 10), 7) : 7;
+    var year = Math.min(2022, doneYr + off);
     var paper = ph === 0 ? 2005 + Math.floor((n - 1) / 4) : ph === 1 ? 2012 + Math.floor((n - 10) / 4) : 2019;
     var tno = ((n - 1) % 4) + 1;
-    // 政治：肖八第 4 套昨天刚做完，从第 5 套起，隔天一套
-    var polSet = Math.min(8, 5 + Math.floor((n - 1) / 2));
-    var polT = ph === 2 ? "政治：肖四选择 1 套 + 错题回看" : (n >= 10 ? "政治：肖四选择 1 套 + 肖八错题回看" : "政治：背考点 30′ + 肖八第 " + polSet + " 套（限时 50′）");
-    // 825：论述手写到第 4 题，名词过到第一章第 20 条
+    var polSet = Math.min(TOTAL_POL, st.polDone + 1 + Math.floor((n - 1) / 2));
+    var polT = ph === 2 ? "政治：肖四选择 1 套 + 错题回看"
+      : (n >= 10 ? "政治：肖四选择 1 套 + 肖八错题回看"
+        : "政治：背考点 30′ + 肖八第 " + polSet + " 套（限时 50′）");
     var spk1 = Math.min(25, 5 + (n - 1) * 2), spk2 = Math.min(26, spk1 + 1);
-    var nounNote = n <= 2 ? "第一章还剩 40 条，两天收完再进第二章" : "按章往下，只说，别翻答案";
+    var nounNote = n <= 2 ? "第一章还剩 40 条，这两天收完再进第二章" : "按章往下，只说，别翻答案";
     var unit = Math.min(25, Math.max(1, n));
-    // 周三的课（上午 CAD + 下午实验）到 12 月 2 日为止，且没有晚课
-    var wedClass = wd === 3 && d.getTime() <= new Date(2026, 11, 2, 23, 59).getTime();
 
-    function word(t, note) { b.push({ s: "06:50", e: "07:20", k: "eng", t: t || "英语：单词 30′", note: note }); }
-    function pol(t, note) { b.push({ s: "07:25", e: "08:25", k: "pol", t: t || polT, note: note || "做完当天对答案，错题按马原/毛中特/史纲/时政分" }); }
-    function words(note) { word("英语：单词 30′", note || ("words.html 第 " + unit + " 单元，60 个")); }
+    var b = [], dropped = 0;
+    function mk(s, e, k, t, note) { b.push({ s: s, e: e, k: k, t: t, note: note }); }
+    var polNote = "做完当天对答案，错题按马原/毛中特/史纲/时政分";
+    var wordT = "英语：单词 30′";
+    var wordN = "words.html 第 " + unit + " 单元，60 个；三秒判定，说不出的划红";
 
-    if (wedClass) {                    // 周三：有课（上午 CAD + 下午实验），没有晚课
-      words();
-      pol("政治：背考点 30′ + 肖八错题 30′", "史纲画时间轴，比背字快");
-      b.push({ s: "08:30", e: "09:55", k: "math", t: "数学：" + year + " 年卷半套（选择填空 + 前两大题）", note: "限时 85′，实验日只能切着做，别拖到晚上" });
-      b.push({ s: "10:10", e: "12:00", k: "cls", t: "课：按课表（CAD）" });
-      b.push({ s: "13:10", e: "14:10", k: "math", t: "数学：半套剩下的大题 + 当堂记错题", note: "三类：算错 / 不会 / 看错题干" });
-      b.push({ s: "14:20", e: "15:20", k: "pro", t: "825 手写：论述 1 题 + 对图", note: "第 " + spk1 + " 题，25′ 写完再对着图查漏项" });
-      b.push({ s: "16:10", e: "18:00", k: "cls", t: "课：实验（按课表）" });
-      b.push({ s: "19:00", e: "19:50", k: "pro", t: "825 口述：名词 20 条", note: nounNote });
-      b.push({ s: "20:00", e: "21:00", k: "eng", t: "英语：精读 1 篇（" + paper + " Text " + tno + "）", note: "18′ 做完 + 30′ 查词译文；课最多的一天，宁可短也要做一篇" });
-      b.push({ s: "21:10", e: "21:40", k: "eng", t: "英语：红词回看 20′ + 三栏本 10′", note: "只回看，不碰新词" });
-    } else if (wd === 6) {             // 周六：整卷
-      words();
-      b.push({ s: "08:30", e: "11:30", k: "math", t: "数学：整卷模考", note: ph === 2 ? "2022 卷，按考试时间，不出去、不查书" : year + " 年卷，按考试时间" });
-      b.push({ s: "13:30", e: "16:30", k: "pro", t: "825：整卷模考", note: "名词 10 条 + 论述 2 题全写，练笔速" });
-      b.push({ s: "17:00", e: "18:00", k: "eng", t: "英语：精读 1 篇 + 对答案" });
-      b.push({ s: "19:00", e: "20:30", k: "math", t: "数学：整卷批改 + 错题归类" });
-      b.push({ s: "20:40", e: "21:20", k: "pol", t: "政治：错题回看 + 大题框架 1 个", note: "框架三段：原理、结合材料、收一句" });
-    } else if (wd === 0) {             // 周日：两科整卷 + 复盘
-      words("回看这周标红的词");
-      b.push({ s: "08:30", e: "11:30", k: "pol", t: "政治：整卷模考", note: "选择限时 50′，大题只写要点" });
-      b.push({ s: "13:30", e: "15:30", k: "eng", t: "英语：整卷模考（阅读 + 作文手写）", note: "不查词，不翻模板；作文 40′ 内写完" });
-      b.push({ s: "15:45", e: "16:45", k: "eng", t: "英语：卷子精析，只挑 2 道深挖", note: "归因：词不认识 / 句子没读懂 / 选项没看清" });
-      b.push({ s: "19:00", e: "20:30", k: "pro", t: "825：名词回看 + 下周清单", note: "错的标进错题本" });
-      b.push({ s: "20:40", e: "21:20", k: "pro", t: "825：论述二轮提纲（第 " + spk1 + "、" + spk2 + " 题）", note: "只写三段骨架，不写全文" });
-      b.push({ s: "21:20", e: "21:40", k: "eng", t: "三栏错题本 + 下周计划", note: "这周英语做了几篇、作文写了几篇，写数字" });
-    } else {                           // 周一、二、四、五：完整日
-      words();
-      pol();
-      if (ph === 0) {
-        b.push({ s: "08:30", e: "11:30", k: "math", t: (n % 2 ? "数学：" + year + " 卷限时一套" : "数学：上一套批改 + 错题重做"), note: n % 2 ? "170′，手写，不查书" : "三类分开，只记思路不抄步骤" });
+    if (wd === 6) {                                  // 周六：数学 + 825 整卷
+      mk("06:50", "07:20", "eng", wordT, "words.html 第 " + unit + " 单元，三秒判定");
+      mk("08:30", "11:30", "math", "数学：" + year + " 年卷整卷模考", "170′，按考试时间，不出去、不查书");
+      mk("13:10", "16:10", "pro", "825：整卷模考", "名词 10 条 + 论述 2 题全写，练笔速");
+      mk("16:20", "17:30", "eng", "英语：精读 1 篇（" + paper + " Text " + tno + "）+ 对答案", "18′ 做 + 查词译句");
+      mk("19:00", "20:30", "math", "数学：整卷批改 + 错题归类", "三类：算错 / 不会 / 看错题干");
+      mk("20:40", "21:30", "pol", "政治：错题回看 + 大题框架 1 个", "框架三段：原理、结合材料、收一句");
+    } else if (wd === 0) {                           // 周日：政治 + 英语整卷
+      mk("06:50", "07:20", "eng", wordT, "回看这周标红的词");
+      mk("08:30", "10:30", "pol", "政治：整卷模考", "选择限时 50′，大题只写要点");
+      mk("10:40", "12:40", "eng", "英语：整卷模考（阅读 + 作文手写）", "不查词、不翻模板；作文 40′ 内写完");
+      mk("13:10", "14:20", "eng", "英语：卷子精析，只挑 2 道深挖", "归因：词不认识 / 句子没读懂 / 选项没看清");
+      mk("14:50", "16:20", "pro", "825：名词回看 + 下周清单", "错的标进错题本");
+      mk("16:30", "17:40", "pro", "825：论述二轮提纲（第 " + spk1 + "、" + spk2 + " 题）", "只写三段骨架，不写全文");
+      mk("19:00", "19:30", "eng", "三栏错题本 + 这周数字盘点", "英语几篇、作文几篇，写数字");
+    } else if (!tight) {                             // 无课日：固定模板
+      mk("06:50", "07:20", "eng", wordT, wordN);
+      mk("07:25", "08:25", "pol", polT, polNote);
+      if (ph === 2) {
+        mk("08:30", "10:00", "math", "数学：错题本 2022 卷回看", "只看错因和你当时没写出的那一步");
+        mk("13:10", "14:20", "pro", "825 手写：论述第 " + spk1 + "、" + spk2 + " 题", "二轮提纲，各 15′");
+        mk("15:15", "16:15", "eng", "英语：大作文默写 1 篇（限时 25′）", "写完对着模板改三处，不重写整篇");
+        mk("16:30", "17:30", "eng", "英语：模板回看 + 卷子精析 1 道", "只挑一道深挖，别摊开");
       } else {
-        b.push({ s: "08:30", e: "11:30", k: "math", t: "数学：" + (ph === 1 ? year + " 卷限时一套" : "错题本 2022 卷回看"), note: "170′，手写，不查书" });
+        mk("08:30", "11:20", "math", "数学：" + year + " 年卷限时一套", "170′，手写，不查书");
+        mk("13:10", "15:00", "pro", "825 手写：论述第 " + spk1 + "、" + spk2 + " 题", "各 25′，写完对图查漏项");
+        mk("15:15", "16:15", "eng", "英语：精读 1 篇（" + paper + " Text " + tno + "）", "18′ 做 → 查词译句 → 明天回看错因");
+        mk("16:30", "17:30", "math", "数学：上午卷错题 + 归类", "只记思路，不抄步骤");
       }
-      b.push({ s: "13:30", e: "15:00", k: "pro", t: "825 手写：论述 2 题", note: ph === 2 ? "二轮只写提纲：第 " + spk1 + "、" + spk2 + " 题" : "第 " + spk1 + "、" + spk2 + " 题，各 25′" });
-      b.push({ s: "15:15", e: "16:15", k: "eng", t: ph === 2 ? "英语：大作文默写 1 篇（限时 25′）" : "英语：精读 1 篇（" + paper + " Text " + tno + "）", note: ph === 2 ? "写完对着自己的三处模板改，不重写整篇" : "三遍法：18′ 做 → 查词译句 → 明天回看错因" });
-      b.push({ s: "16:30", e: "17:30", k: "math", t: "数学：上午卷错题 + 归类" });
-      b.push({ s: "19:30", e: "20:30", k: "eng", t: n % 2 ? "英语：长难句 20′ + 小作文 1 篇（手写 25′）" : "英语：新题型 1 篇 + 作文框架默写", note: n % 2 ? "写完对着范文找三处不一样的地方" : "七选五 30′，大作文三段骨架 30′" });
-      b.push({ s: "20:40", e: "21:30", k: "pro", t: "825 口述：名词 20 条", note: nounNote });
-      b.push({ s: "21:35", e: "21:50", k: "eng", t: "三栏错题本 15′", note: "英语一块、数学一块，只写错因一行" });
+      mk("19:30", "20:30", "eng", ph === 2 ? "英语：大作文成文 1 篇（限时 25′）" : (n % 2 ? "英语：长难句 20′ + 小作文 1 篇（手写 25′）" : "英语：新题型 1 篇 + 作文框架默写"),
+        ph === 2 ? "写完对模板改三处" : (n % 2 ? "写完对着范文找三处不一样" : "七选五 30′，骨架 30′"));
+      mk("20:40", "21:30", "pro", "825 口述：名词 20 条", nounNote);
+      mk("21:35", "21:50", "eng", "三栏错题本 15′", "英语一块、数学一块，只写错因一行");
+    } else {                                         // 有课日：packer 塞短块
+      var tasks = [];
+      function T(k, t, note, dur) { tasks.push({ k: k, t: t, note: note, dur: dur }); }
+      T("eng", wordT, wordN, 30);
+      T("pol", polT, polNote, 50);
+      if (ph === 2) T("math", "数学：错题本回看 1 节", "只看错因和你当时没写出的那一步", 60);
+      else T("math", "数学：" + year + " 年卷半套（选择填空 + 前两大题）", "有课只能切着做，85′ 到点停", 85);
+      T("pro", "825 手写：论述第 " + spk1 + " 题", "25′ 写完再对图查漏项", 30);
+      T("eng", ph === 2 ? "英语：大作文默写 1 篇（限时 25′）" : "英语：精读 1 篇（" + paper + " Text " + tno + "）",
+        ph === 2 ? "写完对着模板改三处" : "有课只做一篇：18′ 做 + 20′ 查词译句，别展开", 45);
+      T("pro", "825 口述：名词 20 条", nounNote, 25);
+      T("eng", "三栏错题本 15′", "英语一块、数学一块，只写错因一行", 15);
+
+      var grid = SLOTS.map(function (sl) {
+        var c = null;
+        cls.forEach(function (k) { if (toMin(sl[0]) < toMin(k.e) && toMin(sl[1]) > toMin(k.s)) c = k; });
+        return { s: sl[0], e: sl[1], cls: c, used: false };
+      });
+      var cursor = 0;
+      tasks.forEach(function (task) {
+        var i = cursor, hit = -1;
+        while (i < grid.length) {
+          if (grid[i].cls || grid[i].used) { i++; continue; }
+          var j = i, span = 0, ok = true;
+          while (j < grid.length && span < task.dur) {
+            if (grid[j].cls || grid[j].used) { ok = false; break; }
+            if (j > i && toMin(grid[j].s) !== toMin(grid[j - 1].e)) { ok = false; break; }
+            span += toMin(grid[j].e) - toMin(grid[j].s);
+            j++;
+          }
+          if (ok && span >= task.dur) { hit = j - 1; break; }
+          i++;
+        }
+        if (hit < 0) { dropped++; return; }
+        var ks = i;
+        for (var k = i; k < hit; k++) grid[k].used = true;
+        var startM = toMin(grid[ks].s), endM = Math.min(toMin(grid[hit].e), startM + task.dur);
+        b.push({ s: grid[ks].s, e: hhmm(endM), k: task.k, t: task.t, note: task.note });
+        // 格子没用完：把剩下的时间留成新格子，后面还能接着塞
+        if (endM < toMin(grid[hit].e)) {
+          grid[hit] = { s: hhmm(endM), e: grid[hit].e, cls: null, used: false };
+          cursor = hit;
+        } else {
+          grid[hit].used = true;
+          cursor = hit + 1;
+        }
+      });
     }
-    return { d: d, n: n, ph: ph, name: weekName(d), blocks: b };
+
+    // 课插进来
+    var seen = {};
+    cls.forEach(function (c) {
+      var key = c.s + "-" + c.e + c.t;
+      if (seen[key]) return; seen[key] = 1;
+      b.push({ s: c.s, e: c.e, k: "cls", t: c.t, note: "" });
+    });
+    b.sort(function (x, y) { return toMin(x.s) - toMin(y.s); });
+
+    return { d: d, n: n, ph: ph, name: weekName(d), blocks: b, dropped: dropped };
   }
 
   // ---- 状态 ----
@@ -131,9 +228,6 @@
   function save() {
     st.ts = Date.now();
     try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {}
-    try {
-      fetch("api/state", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ week: st }) }).catch(function () {});
-    } catch (e) {}
   }
   function toast(m) {
     var el = document.getElementById("toast");
@@ -153,16 +247,16 @@
     var el = document.getElementById("days");
     if (el) el.textContent = diff >= 0 ? diff : "0";
     var hd = document.getElementById("hintDays");
-    if (hd) hd.textContent = diff >= 0 ? "剩 " + diff + " 天。落下的不补。" : "考完了。落下的不补。" ;
+    if (hd) hd.textContent = diff >= 0 ? "剩 " + diff + " 天。落下的不补。" : "考完了。落下的不补。";
     var info = document.getElementById("examInfo");
     if (info) info.innerHTML = "2026.12.19 <span class='faint'>· 周六</span>";
     var ph = PHASES[phaseOf(today)];
     var sub = document.getElementById("sub");
-    if (sub) sub.textContent = ph.nm + " · " + md(today) + "–" + md(addDays(today, 6)) + " · 日期自己算，打开就是对的";
+    if (sub) sub.textContent = ph.nm + " · " + md(today) + "–" + md(addDays(today, 6)) + " · 有课的排课，其余排活";
     var pct = Math.min(100, Math.round(st.mathDone * 100 / TOTAL_MATH));
     var mb = document.getElementById("mathBar"), mp = document.getElementById("mathProg");
     if (mb) mb.style.width = pct + "%";
-    if (mp) mp.textContent = st.mathDone > 0 ? ("做到 " + (2008 + st.mathDone) + " 年（09 起共 " + TOTAL_MATH + " 套）") : ("0 / " + TOTAL_MATH);
+    if (mp) mp.textContent = st.mathDone > 0 ? ("做到 " + (2008 + st.mathDone) + " 年（09 起共 " + TOTAL_MATH + " 套，还剩 " + (TOTAL_MATH - st.mathDone) + " 套）") : ("0 / " + TOTAL_MATH);
     var pp = Math.min(100, Math.round(st.polDone * 100 / TOTAL_POL));
     var pb = document.getElementById("polBar"), pp2 = document.getElementById("polProg");
     if (pb) pb.style.width = pp + "%";
@@ -180,7 +274,7 @@
       items = T.items; note = T.note || "";
     } else {
       items = DAYS[0].blocks.map(function (b) { return { s: b.s, e: b.e, k: b.k, t: b.t, note: b.note, done: !!st.checks[iso(today) + "-" + b.s] }; });
-      note = "";
+      note = DAYS[0].dropped ? "（有 " + DAYS[0].dropped + " 项没塞进今天，明天接着做）" : "";
     }
     box.style.display = "";
     box.innerHTML =
@@ -239,7 +333,7 @@
         g.items.map(function (it) {
           return '<div class="mile' + (st.miles[it.id] ? ' on' : '') + '" data-m="' + it.id + '">' +
             '<span class="bx">✓</span><span class="tx">' + it.tx + '</span></div>';
-        }).join("") +
+        }).join('') +
       '</div>';
     }).join("");
   }
