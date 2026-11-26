@@ -108,25 +108,30 @@
     return out;
   }
 
-  // 数学真题第几套：从 MATH_START（11.26，当天才开始排）起，每个非周日排一套
+  // ---- 排期一律从「今天」起算，起点是已完成的量 ----
+  // 这样点一次 +1，今天起七天整体顺延：少做一天不跳套，多做一天就提前。
+  // 不用固定起算日：固定日期 + 累计常数，一旦中断就会跳过没做的年份/题号。
   function mathSeqOf(d) {
-    var n = daysFrom(MATH_START, d), k = -1;
-    for (var i = 0; i <= n; i++) {
-      if (addDays(MATH_START, i).getDay() !== 0) k++;
-    }
+    var n = daysFrom(today, d), k = 0;
+    for (var i = 0; i < n; i++) if (addDays(today, i).getDay() !== 0) k++;
     return Math.max(0, k);
   }
 
-  // 论述题号：11.26 从第 5 题起，按每天实际排的题数往后推（周六整卷 2 题、周日提纲 2 题、无课日 2 题、有课日 1 题）
+  // 论述题号：今天＝已完成题数 + 1，按每天实际排的题数往后推（周六整卷 2 题、周日提纲 2 题、无课日 2 题、有课日 1 题）
   function essayPerDay(d) {
     var wd = d.getDay();
     if (wd === 6 || wd === 0) return 2;
     return classesOn(d).length ? 1 : 2;
   }
   function essaySeqOf(d) {
-    var n = daysFrom(ESSAY_START, d), k = 0;
-    for (var i = 0; i < n; i++) k += essayPerDay(addDays(ESSAY_START, i));
-    return ESSAY_NO + Math.max(0, k);
+    var n = daysFrom(today, d), k = 0;
+    for (var i = 0; i < n; i++) k += essayPerDay(addDays(today, i));
+    return st.essayDone + 1 + Math.max(0, k);
+  }
+
+  // 政治套数：今天＝已完成 + 1，一天一套（周日整卷也算一套）
+  function polSeqOf(d) {
+    return st.polDone + 1 + Math.max(0, daysFrom(today, d));
   }
 
   // ---- 生成某一天 ----
@@ -140,10 +145,11 @@
     var mathNew = (2009 + st.mathDone + mathIdx) <= 2026;  // 15–26 十二套排完后转错题
     var paper = ph === 0 ? 2005 + Math.floor((n - 1) / 4) : ph === 1 ? 2012 + Math.floor((n - 10) / 4) : 2019;
     var tno = ((n - 1) % 4) + 1;
-    var polSet = Math.min(TOTAL_POL, st.polDone + 1 + Math.floor((n - 1) / 2));
+    var polSet = polSeqOf(d);
+    var polNew = polSet <= TOTAL_POL;
     var polT = ph === 2 ? "政治：肖四选择 1 套 + 错题回看"
       : (n >= 10 ? "政治：肖四选择 1 套 + 肖八错题回看"
-        : "政治：背考点 30′ + 肖八第 " + polSet + " 套（限时 50′）");
+        : (polNew ? "政治：背考点 30′ + 肖八第 " + polSet + " 套（限时 50′）" : "政治：肖八错题回看 + 考点串"));
     var spk1 = essaySeqOf(d), spk2 = spk1 + 1, essayNew = spk1 <= TOTAL_ESSAY;
     var nounNote = n <= 2 ? "第一章还剩 40 条，这两天收完再进第二章" : "按章往下，只说，别翻答案";
     var unit = Math.min(25, Math.max(1, n));
@@ -265,6 +271,7 @@
       checks: s.checks || {},
       mathDone: typeof s.mathDone === "number" ? s.mathDone : 6,
       polDone: typeof s.polDone === "number" ? s.polDone : 4,
+      essayDone: typeof s.essayDone === "number" ? s.essayDone : 4,
       miles: s.miles || {},
       ts: s.ts || 0,
       v: s.v || 0
@@ -274,6 +281,13 @@
     if (out.v < 3) {
       out.mathDone = Math.min(out.mathDone, 6);
       out.v = 3;
+      out.ts = Date.now();
+      try { localStorage.setItem(KEY, JSON.stringify(out)); } catch (e) {}
+    }
+    // 2026-11-26 12:20：排期改为「今天 + 已完成量」实时滚动，论述也记进度了（1–4 题已手写完）。
+    if (out.v < 4) {
+      out.essayDone = Math.max(0, Math.min(TOTAL_ESSAY, out.essayDone || 4));
+      out.v = 4;
       out.ts = Date.now();
       try { localStorage.setItem(KEY, JSON.stringify(out)); } catch (e) {}
     }
@@ -317,6 +331,12 @@
     var pb = document.getElementById("polBar"), pp2 = document.getElementById("polProg");
     if (pb) pb.style.width = pp + "%";
     if (pp2) pp2.textContent = st.polDone > 0 ? ("第 " + st.polDone + " 套完 / " + TOTAL_POL) : ("0 / " + TOTAL_POL);
+    var ep = Math.min(100, Math.round(st.essayDone * 100 / TOTAL_ESSAY));
+    var eb = document.getElementById("essayBar"), ep2 = document.getElementById("essayProg");
+    if (eb) eb.style.width = ep + "%";
+    if (ep2) ep2.textContent = st.essayDone >= TOTAL_ESSAY
+      ? (TOTAL_ESSAY + " / " + TOTAL_ESSAY + " 题（全写完，转提纲抽背）")
+      : ("第 " + st.essayDone + " 题完 / " + TOTAL_ESSAY);
   }
 
   var KK = { pol: "政治", eng: "英语", math: "数学", pro: "825", cls: "课" };
@@ -394,6 +414,13 @@
     }).join("");
   }
 
+  // 进度一改，今天起七天全部重排——这是"实时调整"的那一下
+  function rebuild() {
+    DAYS = [];
+    for (var i = 0; i < 7; i++) DAYS.push(buildDay(addDays(today, i)));
+    renderTop(); renderToday(); render();
+  }
+
   function bind() {
     var plan = document.getElementById("plan");
     if (plan) plan.addEventListener("click", function (e) {
@@ -411,12 +438,17 @@
     var mp = document.getElementById("mathPlus");
     if (mp) mp.addEventListener("click", function () {
       st.mathDone = Math.min(TOTAL_MATH, st.mathDone + 1);
-      save(); renderTop(); toast("数学真题 " + st.mathDone + " / " + TOTAL_MATH);
+      save(); rebuild(); toast("数学真题 " + st.mathDone + " / " + TOTAL_MATH + "，后面七天已顺延");
     });
     var pp = document.getElementById("polPlus");
     if (pp) pp.addEventListener("click", function () {
       st.polDone = Math.min(TOTAL_POL, st.polDone + 1);
-      save(); renderTop(); toast("肖八选择 " + st.polDone + " / " + TOTAL_POL);
+      save(); rebuild(); toast("肖八选择 " + st.polDone + " / " + TOTAL_POL + "，后面七天已顺延");
+    });
+    var ep = document.getElementById("essayPlus");
+    if (ep) ep.addEventListener("click", function () {
+      st.essayDone = Math.min(TOTAL_ESSAY, st.essayDone + 1);
+      save(); rebuild(); toast("825 论述第 " + st.essayDone + " 题完，后面七天已顺延");
     });
     var rs = document.getElementById("reset");
     if (rs) rs.addEventListener("click", function () {
