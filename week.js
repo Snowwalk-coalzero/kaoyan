@@ -118,10 +118,17 @@
   }
 
   // 论述题号：今天＝已完成题数 + 1，按每天实际排的题数往后推（周六整卷 2 题、周日提纲 2 题、无课日 2 题、有课日 1 题）
+  // 今天的课如果已经上完了，就按无课日算 2 题——否则今天排 1 题、明天又回到同一题号。
+  function classesLeft(d) {
+    var cl = classesOn(d);
+    if (iso(d) !== iso(today)) return cl;
+    var nm = new Date().getHours() * 60 + new Date().getMinutes();
+    return cl.filter(function (c) { return toMin(c.e) > nm; });
+  }
   function essayPerDay(d) {
     var wd = d.getDay();
     if (wd === 6 || wd === 0) return 2;
-    return classesOn(d).length ? 1 : 2;
+    return classesLeft(d).length ? 1 : 2;
   }
   function essaySeqOf(d) {
     var n = daysFrom(today, d), k = 0;
@@ -137,6 +144,13 @@
   // ---- 生成某一天 ----
   function buildDay(d) {
     var n = nOf(d), ph = phaseOf(d), wd = d.getDay(), cls = classesOn(d);
+    // 今天：已经过去的时段不排，起点从「现在」之后第一个整块算
+    var isToday = iso(d) === iso(today);
+    var nowM = isToday ? (new Date().getHours() * 60 + new Date().getMinutes()) : 0;
+    if (isToday && nowM > 0) {
+      cls = cls.filter(function (c) { return toMin(c.e) > nowM; });
+      if (cls.length && toMin(cls[0].s) < nowM) cls[0].s = hhmm(nowM);
+    }
     var tight = cls.length > 0;
 
     // 数学真题按「第几次出场」排，不按阶段天数推——否则同一周会排到同一年，甚至跳年。
@@ -156,6 +170,77 @@
 
     var b = [], dropped = 0;
     function mk(s, e, k, t, note) { b.push({ s: s, e: e, k: k, t: t, note: note }); }
+
+    // 把任务按优先级塞进骨架空档（课切成碎片；今天从 nowM 起，已过的格子直接不要）
+    // bands：三个时段（上午/下午/晚上）；传 null 表示不分段，按时间先后贪心填
+    function packInto(tasks, clsList, fromM, bands) {
+      var lost = 0, segs = [];
+      SLOTS.forEach(function (sl) {
+        var s0 = toMin(sl[0]), e0 = toMin(sl[1]);
+        if (fromM > 0) {
+          if (e0 <= fromM + 5) return;
+          if (s0 < fromM) s0 = fromM;
+        }
+        segs.push([s0, e0]);
+      });
+      clsList.forEach(function (c) {
+        var cs = toMin(c.s), ce = toMin(c.e), next = [];
+        segs.forEach(function (g) {
+          if (ce <= g[0] || cs >= g[1]) { next.push(g); return; }
+          if (cs > g[0]) next.push([g[0], cs]);
+          if (ce < g[1]) next.push([ce, g[1]]);
+        });
+        segs = next;
+      });
+
+      function mkGrid(lo, hi) {
+        var g = [];
+        segs.forEach(function (seg) {
+          var a = Math.max(seg[0], lo), z = Math.min(seg[1], hi);
+          if (z - a >= 20) g.push({ s: hhmm(a), e: hhmm(z), used: false });
+        });
+        g.sort(function (x, y) { return toMin(x.s) - toMin(y.s); });
+        return g;
+      }
+      var grids = bands ? bands.map(function (bd) { return mkGrid(bd[0], bd[1]); }) : [mkGrid(0, 1440)];
+      var cursors = grids.map(function () { return 0; });
+
+      var out = [];
+      tasks.forEach(function (task) {
+        var gi = bands ? (task.seg || 0) : 0;
+        var grid = grids[gi], cursor = cursors[gi];
+        var i = cursor, hit = -1;
+        while (i < grid.length) {
+          if (grid[i].used) { i++; continue; }
+          var j = i, span = 0, ok = true;
+          while (j < grid.length && span < task.dur) {
+            if (grid[j].used) { ok = false; break; }
+            if (j > i && toMin(grid[j].s) - toMin(grid[j - 1].e) > 15) { ok = false; break; }
+            span += toMin(grid[j].e) - toMin(grid[j].s);
+            j++;
+          }
+          if (ok && span >= task.dur) { hit = j - 1; break; }
+          i++;
+        }
+        if (hit < 0) { lost++; return; }
+        var ks = i;
+        for (var k = i; k < hit; k++) grid[k].used = true;
+        var startM = toMin(grid[ks].s), gaps = 0;
+        for (var g2 = ks + 1; g2 <= hit; g2++) gaps += Math.max(0, toMin(grid[g2].s) - toMin(grid[g2 - 1].e));
+        var endM = Math.min(toMin(grid[hit].e), startM + task.dur + gaps);
+        out.push({ s: grid[ks].s, e: hhmm(endM), k: task.k, t: task.t, note: task.note });
+        if (endM < toMin(grid[hit].e)) {
+          grid[hit] = { s: hhmm(endM), e: grid[hit].e, used: false };
+          cursors[gi] = hit;
+        } else {
+          grid[hit].used = true;
+          cursors[gi] = hit + 1;
+        }
+      });
+      return { blocks: out, dropped: lost };
+    }
+    // 三个时段：上午 0–12:00、下午 13:10–17:30、晚上 19:00–22:00
+    var BANDS = [[0, 720], [790, 1050], [1140, 1320]];
     var polNote = "做完当天对答案，错题按马原/毛中特/史纲/时政分";
     var wordT = "英语：单词 30′";
     var wordN = "words.html 第 " + unit + " 单元，60 个；三秒判定，说不出的划红";
@@ -175,24 +260,31 @@
       mk("14:50", "16:20", "pro", "825：名词回看 + 下周清单", "错的标进错题本");
       mk("16:30", "17:40", "pro", essayNew ? ("825：论述提纲（第 " + spk1 + "、" + spk2 + " 题）") : "825：论述提纲抽背", "只写三段骨架，不写全文");
       mk("19:00", "19:30", "eng", "三栏错题本 + 这周数字盘点", "英语几篇、作文几篇，写数字");
-    } else if (!tight) {                             // 无课日：固定模板
-      mk("06:50", "07:20", "eng", wordT, wordN);
-      mk("07:25", "08:25", "pol", polT, polNote);
+    } else if (!tight) {                             // 无课日：任务按优先级塞空档（今天从此刻起）
+      var free = [];
+      function T3(k, t, note, dur, seg) { free.push({ k: k, t: t, note: note, dur: dur, seg: seg || 0 }); }
+      T3("eng", wordT, wordN, 30, 0);
+      T3("pol", polT, polNote, 50, 0);
       if (ph === 2) {
-        mk("08:30", "10:00", "math", mathNew ? ("数学：" + mathYear + " 年卷（90′ 压缩：选择填空 + 前两大题）") : "数学：错题本回看 + 公式默写", mathNew ? "只保手感，到点停，不追整卷" : "只看错因和你当时没写出的那一步");
-        mk("13:10", "14:20", "pro", essayNew ? ("825 手写：论述第 " + spk1 + "、" + spk2 + " 题") : "825 二轮：提纲抽背", "二轮提纲，各 15′");
-        mk("15:15", "16:15", "eng", "英语：大作文默写 1 篇（限时 25′）", "写完对着模板改三处，不重写整篇");
-        mk("16:30", "17:30", "eng", "英语：模板回看 + 卷子精析 1 道", "只挑一道深挖，别摊开");
+        T3("math", mathNew ? ("数学：" + mathYear + " 年卷（90′ 压缩：选择填空 + 前两大题）") : "数学：错题本回看 + 公式默写", mathNew ? "只保手感，到点停，不追整卷" : "只看错因和你当时没写出的那一步", 90, 0);
+      } else if (mathNew) {
+        T3("math", isToday ? ("数学：" + mathYear + " 年卷半套（选择填空 + 前两大题）") : ("数学：" + mathYear + " 年卷限时一套"),
+          isToday ? "今天只剩半天，先做前半套 85′；剩下的明早接着做" : "170′，手写，不查书", isToday ? 85 : 170, 0);
       } else {
-        mk("08:30", "11:20", "math", mathNew ? ("数学：" + mathYear + " 年卷限时一套") : "数学：错题本回看 + 公式默写", mathNew ? "170′，手写，不查书" : "真题已收口；错题按题型过，公式手写，不碰新套");
-        mk("13:10", "15:00", "pro", essayNew ? ("825 手写：论述第 " + spk1 + "、" + spk2 + " 题") : "825 二轮：提纲抽背", "各 25′，写完对图查漏项");
-        mk("15:15", "16:15", "eng", "英语：精读 1 篇（" + paper + " Text " + tno + "）", "18′ 做 → 查词译句 → 明天回看错因");
-        mk("16:30", "17:30", "math", mathNew ? "数学：上午卷错题 + 归类" : "数学：错题二轮 + 公式默写", mathNew ? "只记思路，不抄步骤" : "只看错因和你当时没写出的那一步");
+        T3("math", "数学：错题本回看 + 公式默写", "真题已收口；错题按题型过，公式手写，不碰新套", 90, 0);
       }
-      mk("19:30", "20:30", "eng", ph === 2 ? "英语：大作文成文 1 篇（限时 25′）" : (n % 2 ? "英语：长难句 20′ + 小作文 1 篇（手写 25′）" : "英语：新题型 1 篇 + 作文框架默写"),
-        ph === 2 ? "写完对模板改三处" : (n % 2 ? "写完对着范文找三处不一样" : "七选五 30′，骨架 30′"));
-      mk("20:40", "21:30", "pro", "825 口述：名词 20 条", nounNote);
-      mk("21:35", "21:50", "eng", "三栏错题本 15′", "英语一块、数学一块，只写错因一行");
+      T3("pro", essayNew ? ("825 手写：论述第 " + spk1 + "、" + spk2 + " 题") : "825 二轮：提纲抽背", "各 25′，写完对图查漏项", ph === 2 ? 40 : 50, 1);
+      T3("eng", "英语：精读 1 篇（" + paper + " Text " + tno + "）", "18′ 做 → 查词译句 → 明天回看错因", 45, 1);
+      if (!isToday) {
+        T3("math", mathNew ? "数学：上午卷错题 + 归类" : "数学：错题二轮 + 公式默写", mathNew ? "只记思路，不抄步骤" : "只看错因和你当时没写出的那一步", 60, 1);
+        T3("eng", ph === 2 ? "英语：大作文成文 1 篇（限时 25′）" : (n % 2 ? "英语：长难句 20′ + 小作文 1 篇（手写 25′）" : "英语：新题型 1 篇 + 作文框架默写"),
+          ph === 2 ? "写完对模板改三处" : (n % 2 ? "写完对着范文找三处不一样" : "七选五 30′，骨架 30′"), 60, 2);
+      }
+      T3("pro", "825 口述：名词 20 条", nounNote, 25, 2);
+      T3("eng", "三栏错题本 15′", "英语一块、数学一块，只写错因一行", 15, 2);
+      var pkFree = packInto(free, cls, nowM, isToday ? null : BANDS);
+      b = pkFree.blocks;
+      dropped = pkFree.dropped;
     } else {                                         // 有课日：按课切开格子，塞短块
       var tasks = [];
       function T(k, t, note, dur) { tasks.push({ k: k, t: t, note: note, dur: dur }); }
@@ -206,52 +298,9 @@
       T("pro", "825 口述：名词 20 条", nounNote, 25);
       T("eng", "三栏错题本 15′", "英语一块、数学一块，只写错因一行", 15);
 
-      // 骨架格子减掉课，切出来的碎片 ≥20′ 才用
-      var segs = [];
-      SLOTS.forEach(function (sl) { segs.push([toMin(sl[0]), toMin(sl[1])]); });
-      cls.forEach(function (c) {
-        var cs = toMin(c.s), ce = toMin(c.e), next = [];
-        segs.forEach(function (g) {
-          if (ce <= g[0] || cs >= g[1]) { next.push(g); return; }
-          if (cs > g[0]) next.push([g[0], cs]);
-          if (ce < g[1]) next.push([ce, g[1]]);
-        });
-        segs = next;
-      });
-      var grid = [];
-      segs.forEach(function (g) {
-        if (g[1] - g[0] >= 20) grid.push({ s: hhmm(g[0]), e: hhmm(g[1]), used: false });
-      });
-      grid.sort(function (a, b) { return toMin(a.s) - toMin(b.s); });
-
-      var cursor = 0;
-      tasks.forEach(function (task) {
-        var i = cursor, hit = -1;
-        while (i < grid.length) {
-          if (grid[i].used) { i++; continue; }
-          var j = i, span = 0, ok = true;
-          while (j < grid.length && span < task.dur) {
-            if (grid[j].used) { ok = false; break; }
-            if (j > i && toMin(grid[j].s) !== toMin(grid[j - 1].e)) { ok = false; break; }
-            span += toMin(grid[j].e) - toMin(grid[j].s);
-            j++;
-          }
-          if (ok && span >= task.dur) { hit = j - 1; break; }
-          i++;
-        }
-        if (hit < 0) { dropped++; return; }
-        var ks = i;
-        for (var k = i; k < hit; k++) grid[k].used = true;
-        var startM = toMin(grid[ks].s), endM = Math.min(toMin(grid[hit].e), startM + task.dur);
-        b.push({ s: grid[ks].s, e: hhmm(endM), k: task.k, t: task.t, note: task.note });
-        if (endM < toMin(grid[hit].e)) {
-          grid[hit] = { s: hhmm(endM), e: grid[hit].e, used: false };
-          cursor = hit;
-        } else {
-          grid[hit].used = true;
-          cursor = hit + 1;
-        }
-      });
+      var pkCls = packInto(tasks, cls, nowM, null);
+      b = pkCls.blocks;
+      dropped = pkCls.dropped;
     }
 
     // 课插进来
@@ -259,6 +308,11 @@
       b.push({ s: c.s, e: c.e, k: "cls", t: c.t, note: "" });
     });
     b.sort(function (x, y) { return toMin(x.s) - toMin(y.s); });
+
+    // 今天：已经过去的块不再列出来（周末整卷日是固定时刻，不重排，只裁掉过去的）
+    if (isToday && nowM > 0) {
+      b = b.filter(function (x) { return toMin(x.e) > nowM; });
+    }
 
     return { d: d, n: n, ph: ph, name: weekName(d), blocks: b, dropped: dropped };
   }
@@ -353,8 +407,10 @@
       note = DAYS[0].dropped ? "（今天有 " + DAYS[0].dropped + " 项没排进去，明早接着做）" : "";
     }
     box.style.display = "";
+    var nowTxt = pad(new Date().getHours()) + ":" + pad(new Date().getMinutes());
     box.innerHTML =
       '<div class="today-h"><span class="td">今天</span><span class="tn num">' + dateTxt + '</span>' +
+      '<span class="faint" style="font-size:12px;margin-left:6px">现在 ' + nowTxt + ' 起</span>' +
       (note ? '<div class="tnote">' + note + '</div>' : '') + '</div>' +
       items.map(function (it) {
         return '<div class="titem' + (it.done ? ' done' : '') + '">' +
