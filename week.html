@@ -111,6 +111,9 @@
   .titem{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;background:var(--card);
     border:1px solid var(--line);border-radius:10px;margin-bottom:7px;font-size:13.5px;line-height:1.55}
   .titem.done{opacity:.55}
+  .titem.tdone{opacity:.75;border-style:dashed}
+  .titem .tundo{margin-left:auto;color:var(--amber);font-size:12px;cursor:pointer;border-bottom:1px dashed rgba(224,164,88,.5)}
+  .titem .tundo:hover{color:#f0b96a}
   .titem .tnum{color:var(--faint);font-size:12px;min-width:80px;padding-top:1px}
   .titem .tt{flex:1}
   .titem .tn2{color:var(--dim);font-size:12px;white-space:nowrap}
@@ -154,7 +157,8 @@
   <div class="hint">
     <b id="hintDays">剩 24 天。落下的不补。</b>
     补会把这一周挤塌，从今天重新起算更划算——少两天不等于账要对平。
-    页面的排期从<b>此刻</b>起算：已经过去的时段自动跳过，今天只排剩下的时间；点 +1 之后七天整体顺延，不会跳过没做的套。
+    页面的排期从<b>此刻</b>起算：已经过去的时段自动跳过，今天只排剩下的时间；点 +1 之后七天整体顺延，不会跳过没做的套。<br>
+    今天做完的项会收进「已完成」那一行、不再占时间，点「撤销」可以放回去。
     每天四件硬指标：数学一天一套（有课的日子半套）、论述按题号往下（有课 1 题、无课 2 题）、825 口述 20 条、政治 30′。
     英语从这周起是第四件，不让位：单词 30′ + 精读 1 篇，有课的日子也留一篇。
     周六周日两套整卷别让，那是唯一能校准手感的东西。
