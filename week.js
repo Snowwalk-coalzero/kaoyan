@@ -168,8 +168,18 @@
     var nounNote = n <= 2 ? "第一章还剩 40 条，这两天收完再进第二章" : "按章往下，只说，别翻答案";
     var unit = Math.min(25, Math.max(1, n));
 
-    var b = [], dropped = 0;
-    function mk(s, e, k, t, note) { b.push({ s: s, e: e, k: k, t: t, note: note }); }
+    var b = [], dropped = 0, doneKs = [];
+    // 今天已做完的（单词、某一套政治…）：按任务标题里的关键词认，不占今天的空档、也不再排一遍。
+    // 只在 state 里日期等于今天时生效，过了零点自动失效。
+    function skipDone(t) {
+      if (!isToday || !(st.doneDay && st.doneDay.date === iso(today))) return false;
+      var kk = st.doneDay.k || {}, hit = "";
+      Object.keys(kk).forEach(function (k) { if (!hit && t.indexOf(k) >= 0) hit = k; });
+      if (!hit) return false;
+      if (doneKs.indexOf(hit) < 0) doneKs.push(hit);
+      return true;
+    }
+    function mk(s, e, k, t, note) { if (skipDone(t)) return; b.push({ s: s, e: e, k: k, t: t, note: note }); }
 
     // 把任务按优先级塞进骨架空档（课切成碎片；今天从 nowM 起，已过的格子直接不要）
     // bands：三个时段（上午/下午/晚上）；传 null 表示不分段，按时间先后贪心填
@@ -265,7 +275,7 @@
       mk("19:00", "19:30", "eng", "三栏错题本 + 这周数字盘点", "英语几篇、作文几篇，写数字");
     } else if (!tight) {                             // 无课日：任务按优先级塞空档（今天从此刻起）
       var free = [];
-      function T3(k, t, note, dur, seg) { free.push({ k: k, t: t, note: note, dur: dur, seg: seg || 0 }); }
+      function T3(k, t, note, dur, seg) { if (skipDone(t)) return; free.push({ k: k, t: t, note: note, dur: dur, seg: seg || 0 }); }
       T3("eng", wordT, wordN, 30, 0);
       T3("pol", polT, polNote, 50, 0);
       if (ph === 2) {
@@ -290,7 +300,7 @@
       dropped = pkFree.dropped;
     } else {                                         // 有课日：按课切开格子，塞短块
       var tasks = [];
-      function T(k, t, note, dur) { tasks.push({ k: k, t: t, note: note, dur: dur }); }
+      function T(k, t, note, dur) { if (skipDone(t)) return; tasks.push({ k: k, t: t, note: note, dur: dur }); }
       T("eng", wordT, wordN, 30);
       T("pol", polT, polNote, 50);
       if (mathNew) T("math", "数学：" + mathYear + " 年卷半套（选择填空 + 前两大题）", "有课只能切着做，85′ 到点停", 85);
@@ -317,7 +327,7 @@
       b = b.filter(function (x) { return toMin(x.e) > nowM; });
     }
 
-    return { d: d, n: n, ph: ph, name: weekName(d), blocks: b, dropped: dropped };
+    return { d: d, n: n, ph: ph, name: weekName(d), blocks: b, dropped: dropped, doneKs: doneKs };
   }
 
   // ---- 状态 ----
@@ -330,6 +340,7 @@
       polDone: typeof s.polDone === "number" ? s.polDone : 5,
       essayDone: typeof s.essayDone === "number" ? s.essayDone : 4,
       miles: s.miles || {},
+      doneDay: (s.doneDay && typeof s.doneDay === "object" && s.doneDay.k) ? s.doneDay : { date: "", k: {} },
       ts: s.ts || 0,
       v: s.v || 0
     };
@@ -352,6 +363,14 @@
     if (out.v < 5) {
       out.polDone = Math.max(out.polDone || 0, 5);
       out.v = 5;
+      out.ts = Date.now();
+      try { localStorage.setItem(KEY, JSON.stringify(out)); } catch (e) {}
+    }
+    // 2026-11-26 15:16 博士口径：单词今天已背完、肖八第 5 套今天上午做完 →
+    // 今天这两项不再占空档、也不重复排；明天日期对不上自动失效。
+    if (out.v < 6) {
+      out.doneDay = { date: "2026-11-26", k: { "单词": 1, "第 6 套": 1 } };
+      out.v = 6;
       out.ts = Date.now();
       try { localStorage.setItem(KEY, JSON.stringify(out)); } catch (e) {}
     }
@@ -418,18 +437,22 @@
     }
     box.style.display = "";
     var nowTxt = pad(new Date().getHours()) + ":" + pad(new Date().getMinutes());
+    var dk = (DAYS[0] && DAYS[0].doneKs) || [];
+    var dkTxt = dk.join("、");
     box.innerHTML =
       '<div class="today-h"><span class="td">今天</span><span class="tn num">' + dateTxt + '</span>' +
       '<span class="faint" style="font-size:12px;margin-left:6px">现在 ' + nowTxt + ' 起</span>' +
       (note ? '<div class="tnote">' + note + '</div>' : '') + '</div>' +
-      items.map(function (it) {
+      (dkTxt ? '<div class="titem tdone"><span class="k pol">已完成</span><span class="tt">' + dkTxt +
+        '</span><span class="tundo" id="tundo">撤销</span></div>' : '') +
+      (items.length ? items.map(function (it) {
         return '<div class="titem' + (it.done ? ' done' : '') + '">' +
           '<span class="tnum">' + (it.s || '') + (it.e && it.e !== it.s ? '–' + it.e : '') + '</span>' +
           '<span class="k ' + it.k + '">' + (KK[it.k] || '') + '</span>' +
           '<span class="tt">' + it.t + '</span>' +
           (it.note ? '<span class="tn2">' + it.note + '</span>' : '') +
           '</div>';
-      }).join("");
+      }).join("") : '<div class="titem"><span class="tt">今天剩下的时间不多了，剩下的明早接着做。</span></div>');
   }
 
   function slotHtml(day, bi, b) {
@@ -501,6 +524,12 @@
       }
     });
 
+    var td = document.getElementById("today");
+    if (td) td.addEventListener("click", function (e) {
+      if (!e.target.closest("#tundo")) return;
+      st.doneDay = { date: "", k: {} };
+      save(); rebuild(); toast("已恢复，今天的块重新排上");
+    });
     var mp = document.getElementById("mathPlus");
     if (mp) mp.addEventListener("click", function () {
       st.mathDone = Math.min(TOTAL_MATH, st.mathDone + 1);
