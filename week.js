@@ -65,7 +65,7 @@
       { id: "m4", tx: '公式手写默写一遍' }
     ]},
     { nm: "政治", items: [
-      { id: "g1", tx: '肖八第 5–8 套选择做完' },
+      { id: "g1", tx: '肖八整套选择做完（8 套）' },
       { id: "g2", tx: '肖四选择 4 套' },
       { id: "g3", tx: '肖四大题框架 12 个背熟' },
       { id: "g4", tx: '肖八错题按四类归档' }
@@ -215,11 +215,14 @@
           var j = i, span = 0, ok = true;
           while (j < grid.length && span < task.dur) {
             if (grid[j].used) { ok = false; break; }
-            if (j > i && toMin(grid[j].s) - toMin(grid[j - 1].e) > 15) { ok = false; break; }
+            // 跨时段的大空隙不拼，但按已累计的格子结算（下面决定是否命中或贴边）
+            if (j > i && toMin(grid[j].s) - toMin(grid[j - 1].e) > 15) break;
             span += toMin(grid[j].e) - toMin(grid[j].s);
             j++;
           }
-          if (ok && span >= task.dur) { hit = j - 1; break; }
+          // 今天从此刻起排时格子被截短了：差 20′ 以内的任务贴边做完，不留半天空档
+          var shortBy = task.dur - span;
+          if (ok && (span >= task.dur || (fromM > 0 && span >= 20 && shortBy <= 20))) { hit = j - 1; break; }
           i++;
         }
         if (hit < 0) { lost++; return; }
@@ -324,7 +327,7 @@
     var out = {
       checks: s.checks || {},
       mathDone: typeof s.mathDone === "number" ? s.mathDone : 6,
-      polDone: typeof s.polDone === "number" ? s.polDone : 4,
+      polDone: typeof s.polDone === "number" ? s.polDone : 5,
       essayDone: typeof s.essayDone === "number" ? s.essayDone : 4,
       miles: s.miles || {},
       ts: s.ts || 0,
@@ -342,6 +345,13 @@
     if (out.v < 4) {
       out.essayDone = Math.max(0, Math.min(TOTAL_ESSAY, out.essayDone || 4));
       out.v = 4;
+      out.ts = Date.now();
+      try { localStorage.setItem(KEY, JSON.stringify(out)); } catch (e) {}
+    }
+    // 2026-11-26 15:12 博士口径：肖八第 5 套选择今天上午 11:00 做完 → 进度升到 5。
+    if (out.v < 5) {
+      out.polDone = Math.max(out.polDone || 0, 5);
+      out.v = 5;
       out.ts = Date.now();
       try { localStorage.setItem(KEY, JSON.stringify(out)); } catch (e) {}
     }
