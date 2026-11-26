@@ -8,12 +8,13 @@
   var KEY = "kaoyan-week-v1";
   var EXAM = new Date(2026, 11, 19);          // 2026-12-19
   var START = new Date(2026, 10, 25);         // 计划第一天 11.25
+  var MATH_START = new Date(2026, 10, 26);    // 数学真题第一套从 11.26 起（11.25 已过，不再回溯）
   var PHASES = [
     { nm: "基础期", from: "2026-11-25", to: "2026-12-03" },   // n 1..9
     { nm: "强化期", from: "2026-12-04", to: "2026-12-13" },   // n 10..19
     { nm: "冲刺期", from: "2026-12-14", to: "2026-12-18" }    // n 20..24
   ];
-  var TOTAL_MATH = 14, TOTAL_POL = 8;
+  var TOTAL_MATH = 18, TOTAL_POL = 8;
 
   // ---- 课表（按周写，改这里）----
   // wd: 0=周日 1=周一 … 6=周六。灰字「非本周」的课没排进来。
@@ -57,7 +58,7 @@
       { id: "p4", tx: '第 7–9 章名词补完（冲击地压、岩层移动、研究方法）' }
     ]},
     { nm: "数学", items: [
-      { id: "m1", tx: '15–22 年八套走完' },
+      { id: "m1", tx: '15–26 年十二套走完' },
       { id: "m2", tx: '错题本回看第 1 轮' },
       { id: "m3", tx: '错题本回看第 2 轮' },
       { id: "m4", tx: '公式手写默写一遍' }
@@ -106,14 +107,24 @@
     return out;
   }
 
+  // 数学真题第几套：从 MATH_START（11.26，当天才开始排）起，每个非周日排一套
+  function mathSeqOf(d) {
+    var n = daysFrom(MATH_START, d), k = -1;
+    for (var i = 0; i <= n; i++) {
+      if (addDays(MATH_START, i).getDay() !== 0) k++;
+    }
+    return Math.max(0, k);
+  }
+
   // ---- 生成某一天 ----
   function buildDay(d) {
     var n = nOf(d), ph = phaseOf(d), wd = d.getDay(), cls = classesOn(d);
     var tight = cls.length > 0;
 
-    var doneYr = 2009 + st.mathDone;                      // 做完 14 年卷 → 2015
-    var off = ph === 0 ? Math.floor((n - 1) / 2) : ph === 1 ? Math.min(4 + (n - 10), 7) : 7;
-    var year = Math.min(2022, doneYr + off);
+    // 数学真题按「第几次出场」排，不按阶段天数推——否则同一周会排到同一年，甚至跳年。
+    var mathIdx = mathSeqOf(d);                            // 0 起：每个非周日一套
+    var mathYear = Math.min(2026, 2009 + st.mathDone + mathIdx);
+    var mathNew = (2009 + st.mathDone + mathIdx) <= 2026;  // 15–26 十二套排完后转错题
     var paper = ph === 0 ? 2005 + Math.floor((n - 1) / 4) : ph === 1 ? 2012 + Math.floor((n - 10) / 4) : 2019;
     var tno = ((n - 1) % 4) + 1;
     var polSet = Math.min(TOTAL_POL, st.polDone + 1 + Math.floor((n - 1) / 2));
@@ -132,10 +143,10 @@
 
     if (wd === 6) {                                  // 周六：数学 + 825 整卷
       mk("06:50", "07:20", "eng", wordT, "words.html 第 " + unit + " 单元，三秒判定");
-      mk("08:30", "11:30", "math", "数学：" + year + " 年卷整卷模考", "170′，按考试时间，不出去、不查书");
+      mk("08:30", "11:30", "math", mathNew ? ("数学：" + mathYear + " 年卷整卷模考") : "数学：错题重做成卷（170′）", mathNew ? "170′，按考试时间，不出去、不查书" : "真题已收口；从错题本挑同类题成组重做，掐时间");
       mk("13:10", "16:10", "pro", "825：整卷模考", "名词 10 条 + 论述 2 题全写，练笔速");
       mk("16:20", "17:30", "eng", "英语：精读 1 篇（" + paper + " Text " + tno + "）+ 对答案", "18′ 做 + 查词译句");
-      mk("19:00", "20:30", "math", "数学：整卷批改 + 错题归类", "三类：算错 / 不会 / 看错题干");
+      mk("19:00", "20:30", "math", mathNew ? "数学：整卷批改 + 错题归类" : "数学：错题归档 + 公式默写", mathNew ? "三类：算错 / 不会 / 看错题干" : "只记错因和你当时没写出的那一步");
       mk("20:40", "21:30", "pol", "政治：错题回看 + 大题框架 1 个", "框架三段：原理、结合材料、收一句");
     } else if (wd === 0) {                           // 周日：政治 + 英语整卷
       mk("06:50", "07:20", "eng", wordT, "回看这周标红的词");
@@ -149,15 +160,15 @@
       mk("06:50", "07:20", "eng", wordT, wordN);
       mk("07:25", "08:25", "pol", polT, polNote);
       if (ph === 2) {
-        mk("08:30", "10:00", "math", "数学：错题本 2022 卷回看", "只看错因和你当时没写出的那一步");
+        mk("08:30", "10:00", "math", mathNew ? ("数学：" + mathYear + " 年卷（90′ 压缩：选择填空 + 前两大题）") : "数学：错题本回看 + 公式默写", mathNew ? "只保手感，到点停，不追整卷" : "只看错因和你当时没写出的那一步");
         mk("13:10", "14:20", "pro", "825 手写：论述第 " + spk1 + "、" + spk2 + " 题", "二轮提纲，各 15′");
         mk("15:15", "16:15", "eng", "英语：大作文默写 1 篇（限时 25′）", "写完对着模板改三处，不重写整篇");
         mk("16:30", "17:30", "eng", "英语：模板回看 + 卷子精析 1 道", "只挑一道深挖，别摊开");
       } else {
-        mk("08:30", "11:20", "math", "数学：" + year + " 年卷限时一套", "170′，手写，不查书");
+        mk("08:30", "11:20", "math", mathNew ? ("数学：" + mathYear + " 年卷限时一套") : "数学：错题本回看 + 公式默写", mathNew ? "170′，手写，不查书" : "真题已收口；错题按题型过，公式手写，不碰新套");
         mk("13:10", "15:00", "pro", "825 手写：论述第 " + spk1 + "、" + spk2 + " 题", "各 25′，写完对图查漏项");
         mk("15:15", "16:15", "eng", "英语：精读 1 篇（" + paper + " Text " + tno + "）", "18′ 做 → 查词译句 → 明天回看错因");
-        mk("16:30", "17:30", "math", "数学：上午卷错题 + 归类", "只记思路，不抄步骤");
+        mk("16:30", "17:30", "math", mathNew ? "数学：上午卷错题 + 归类" : "数学：错题二轮 + 公式默写", mathNew ? "只记思路，不抄步骤" : "只看错因和你当时没写出的那一步");
       }
       mk("19:30", "20:30", "eng", ph === 2 ? "英语：大作文成文 1 篇（限时 25′）" : (n % 2 ? "英语：长难句 20′ + 小作文 1 篇（手写 25′）" : "英语：新题型 1 篇 + 作文框架默写"),
         ph === 2 ? "写完对模板改三处" : (n % 2 ? "写完对着范文找三处不一样" : "七选五 30′，骨架 30′"));
@@ -168,8 +179,8 @@
       function T(k, t, note, dur) { tasks.push({ k: k, t: t, note: note, dur: dur }); }
       T("eng", wordT, wordN, 30);
       T("pol", polT, polNote, 50);
-      if (ph === 2) T("math", "数学：错题本回看 1 节", "只看错因和你当时没写出的那一步", 60);
-      else T("math", "数学：" + year + " 年卷半套（选择填空 + 前两大题）", "有课只能切着做，85′ 到点停", 85);
+      if (mathNew) T("math", "数学：" + mathYear + " 年卷半套（选择填空 + 前两大题）", "有课只能切着做，85′ 到点停", 85);
+      else T("math", "数学：错题本回看 1 节", "真题已排完；只看错因和你当时没写出的那一步", 60);
       T("pro", "825 手写：论述第 " + spk1 + " 题", "25′ 写完再对图查漏项", 30);
       T("eng", ph === 2 ? "英语：大作文默写 1 篇（限时 25′）" : "英语：精读 1 篇（" + paper + " Text " + tno + "）",
         ph === 2 ? "写完对着模板改三处" : "有课只做一篇：18′ 做 + 20′ 查词译句，别展开", 45);
@@ -235,10 +246,25 @@
 
   // ---- 状态 ----
   function load() {
-    try {
-      var s = JSON.parse(localStorage.getItem(KEY) || "{}") || {};
-      return { checks: s.checks || {}, mathDone: typeof s.mathDone === "number" ? s.mathDone : 6, polDone: typeof s.polDone === "number" ? s.polDone : 4, miles: s.miles || {}, ts: s.ts || 0 };
-    } catch (e) { return { checks: {}, mathDone: 6, polDone: 4, miles: {}, ts: 0 }; }
+    var s = {};
+    try { s = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) { s = {}; }
+    var out = {
+      checks: s.checks || {},
+      mathDone: typeof s.mathDone === "number" ? s.mathDone : 6,
+      polDone: typeof s.polDone === "number" ? s.polDone : 4,
+      miles: s.miles || {},
+      ts: s.ts || 0,
+      v: s.v || 0
+    };
+    // 2026-11-26 08:11 博士更正：做完的是 2014 年卷，2014 年以前的全做完；15–22 还没动。
+    // 上一版误把 mathDone 升到 14，这里降回 6（09–14 六套）。
+    if (out.v < 3) {
+      out.mathDone = Math.min(out.mathDone, 6);
+      out.v = 3;
+      out.ts = Date.now();
+      try { localStorage.setItem(KEY, JSON.stringify(out)); } catch (e) {}
+    }
+    return out;
   }
   function save() {
     st.ts = Date.now();
@@ -271,7 +297,9 @@
     var pct = Math.min(100, Math.round(st.mathDone * 100 / TOTAL_MATH));
     var mb = document.getElementById("mathBar"), mp = document.getElementById("mathProg");
     if (mb) mb.style.width = pct + "%";
-    if (mp) mp.textContent = st.mathDone > 0 ? ("做到 " + (2008 + st.mathDone) + " 年（09 起共 " + TOTAL_MATH + " 套，还剩 " + (TOTAL_MATH - st.mathDone) + " 套）") : ("0 / " + TOTAL_MATH);
+    if (mp) mp.textContent = st.mathDone >= TOTAL_MATH
+      ? (TOTAL_MATH + " / " + TOTAL_MATH + " 套（已全做完，转错题）")
+      : (st.mathDone > 0 ? ("做到 " + (2008 + st.mathDone) + " 年卷（共 " + TOTAL_MATH + " 套，还剩 " + (TOTAL_MATH - st.mathDone) + " 套）") : ("0 / " + TOTAL_MATH));
     var pp = Math.min(100, Math.round(st.polDone * 100 / TOTAL_POL));
     var pb = document.getElementById("polBar"), pp2 = document.getElementById("polProg");
     if (pb) pb.style.width = pp + "%";
